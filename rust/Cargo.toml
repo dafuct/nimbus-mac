@@ -1,0 +1,10 @@
+[workspace]
+members = ["nimbus_core"]
+resolver = "2"
+
+# A single shared target directory keeps the Xcode build script's paths stable
+# (rust/target/...) regardless of how many crates the workspace grows to.
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd plist for the SMAppService-managed privileged daemon.
+  Install location inside the app bundle:
+      Nimbus.app/Contents/Library/LaunchDaemons/com.nimbus.app.helper.plist
+  The helper executable is bundled at:
+      Nimbus.app/Contents/MacOS/NimbusHelper
+  Register from the app with: SMAppService.daemon(plistName: "com.nimbus.app.helper.plist").register()
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.nimbus.app.helper</string>
+
+    <key>BundleProgram</key>
+    <string>Contents/MacOS/NimbusHelper</string>
+
+    <key>MachServices</key>
+    <dict>
+        <key>com.nimbus.app.helper</key>
+        <true/>
+    </dict>
+
+    <!-- Restricts which app(s) may talk to this daemon. -->
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>com.nimbus.app</string>
+    </array>
+</dict>
+</plist>

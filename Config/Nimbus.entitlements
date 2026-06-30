@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  App entitlements. Nimbus ships NON-sandboxed (App Sandbox cannot clean system
+  caches/logs/language files or run maintenance tasks — see docs/DISTRIBUTION.md).
+  Distribution: Developer ID + Hardened Runtime + notarization, via DMG.
+
+  Hardened Runtime is a *signing* flag (ENABLE_HARDENED_RUNTIME=YES), not a key
+  here. Full Disk Access is a TCC permission the user grants at runtime in System
+  Settings — also not an entitlement.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    <!-- Allow Apple-events/automation only if a feature needs it; off by default. -->
+    <key>com.apple.security.automation.apple-events</key>
+    <false/>
+</dict>
+</plist>

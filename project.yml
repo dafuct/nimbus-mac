@@ -1,0 +1,115 @@
+name: Nimbus
+options:
+  bundleIdPrefix: com.nimbus
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+# The local Swift package (root Package.swift) supplies the tested, Rust-free
+# domain + view-model libraries. The app layers SwiftUI + the Rust bridge on top.
+packages:
+  NimbusCore:
+    path: .
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    # Local builds: ad-hoc sign so it runs without a Developer ID. Release/notarized
+    # signing is covered in docs/DISTRIBUTION.md.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "YES"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  Nimbus:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - "Nimbus/Resources/Fonts"   # added as a folder reference below
+      - path: App/Nimbus/Resources/Fonts
+        type: folder
+        buildPhase: resources
+      - path: Sources/NimbusFFI
+        # The C header + module map are referenced via a compiler flag, not compiled.
+        excludes:
+          - "generated/nimbus_coreFFI.h"
+          - "generated/nimbus_coreFFI.modulemap"
+      - path: Shared/HelperProtocol.swift
+    dependencies:
+      - package: NimbusCore
+        product: NimbusKit
+      - package: NimbusCore
+        product: NimbusViewModels
+      - target: NimbusHelper
+    info:
+      path: Config/Generated-Info-App.plist
+      properties:
+        CFBundleName: Nimbus
+        CFBundleDisplayName: Nimbus
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        LSUIElement: false
+        ATSApplicationFontsPath: "Fonts"
+        NSDesktopFolderUsageDescription: "Nimbus scans your Desktop to find large files and duplicates."
+        NSDocumentsFolderUsageDescription: "Nimbus scans your Documents to find large files and duplicates."
+        NSDownloadsFolderUsageDescription: "Nimbus scans your Downloads to find large files and duplicates."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nimbus.app
+        CODE_SIGN_ENTITLEMENTS: Config/Nimbus.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Link the Rust accelerator + the system frameworks its std/deps reference.
+        OTHER_LDFLAGS:
+          - "-L$(SRCROOT)/rust/target/universal"
+          - "-lnimbus_core"
+          - "-framework"
+          - "CoreFoundation"
+          - "-framework"
+          - "Security"
+          - "-liconv"
+        # Make `import nimbus_coreFFI` (UniFFI's C module) resolvable.
+        OTHER_SWIFT_FLAGS:
+          - "-Xcc"
+          - "-fmodule-map-file=$(SRCROOT)/Sources/NimbusFFI/generated/nimbus_coreFFI.modulemap"
+    preBuildScripts:
+      - name: Build Rust accelerator + bindings
+        script: |
+          "$SRCROOT/scripts/build-rust.sh" release
+        basedOnDependencyAnalysis: false
+    postBuildScripts:
+      - name: Embed privileged helper + launchd plist
+        script: |
+          set -e
+          APP="$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH"
+          mkdir -p "$APP/MacOS" "$APP/Library/LaunchDaemons"
+          if [ -f "$BUILT_PRODUCTS_DIR/NimbusHelper" ]; then
+            cp -f "$BUILT_PRODUCTS_DIR/NimbusHelper" "$APP/MacOS/NimbusHelper"
+          fi
+          cp -f "$SRCROOT/Config/com.nimbus.app.helper.plist" "$APP/Library/LaunchDaemons/"
+        basedOnDependencyAnalysis: false
+
+  NimbusHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Helper/NimbusHelper
+      - path: Shared/HelperProtocol.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nimbus.app.helper
+        PRODUCT_NAME: NimbusHelper
+        CODE_SIGN_ENTITLEMENTS: Config/NimbusHelper.entitlements
+
+schemes:
+  Nimbus:
+    build:
+      targets:
+        Nimbus: all
+    run:
+      config: Debug

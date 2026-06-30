@@ -1,0 +1,217 @@
+import SwiftUI
+import NimbusViewModels
+
+/// Settings — General, Scan & Safety, and the user exclusion list. Skinned to
+/// `Nimbus.dc.html`. Split into small typed subviews for the type-checker's sake.
+struct SettingsView: View {
+    @Bindable var viewModel: SettingsViewModel
+    var onReplayOnboarding: () -> Void = {}
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                generalCard
+                scanSafetyCard
+                exclusionsCard
+                onboardingCard
+            }
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
+            .padding(EdgeInsets(top: 26, leading: 28, bottom: 40, trailing: 28))
+        }
+        .background(Theme.Colors.window)
+    }
+
+    // MARK: General
+
+    private var generalCard: some View {
+        SettingsCard(title: "Загальне") {
+            ToggleRow(title: "Компаньйон у menu bar",
+                      subtitle: "Живий індикатор стану та швидке сканування з рядка меню.",
+                      isOn: $viewModel.menuBarEnabled)
+            Divider().overlay(Theme.Colors.hairlineSoft)
+            ToggleRow(title: "Запускати під час входу",
+                      subtitle: "Nimbus стартує разом із системою (фоново, без вікна).",
+                      isOn: $viewModel.launchAtLogin)
+            Divider().overlay(Theme.Colors.hairlineSoft)
+            HStack {
+                SettingLabel(title: "Оформлення", subtitle: "Світла тема доступна як окремі приклади.")
+                Spacer()
+                Picker("", selection: $viewModel.theme) {
+                    Text("Авто").tag(SettingsViewModel.ThemeMode.auto)
+                    Text("Світла").tag(SettingsViewModel.ThemeMode.light)
+                    Text("Темна").tag(SettingsViewModel.ThemeMode.dark)
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+            }
+            .padding(.horizontal, 20).padding(.vertical, 13)
+        }
+    }
+
+    // MARK: Scan & safety
+
+    private var scanSafetyCard: some View {
+        SettingsCard(title: "Сканування й безпека") {
+            ToggleRow(title: "Безпечне видалення (у Кошик)",
+                      subtitle: "Усе видалене спершу йде в Кошик. Вимкнення дозволяє остаточне видалення — обережно.",
+                      isOn: $viewModel.safeDelete)
+            Divider().overlay(Theme.Colors.hairlineSoft)
+            ToggleRow(title: "Сканувати поштові вкладення",
+                      subtitle: "Вимкнено за замовчуванням — це ваші особисті дані.",
+                      isOn: $viewModel.scanMail)
+            Divider().overlay(Theme.Colors.hairlineSoft)
+            HStack {
+                SettingLabel(title: "Глибина пошуку дублікатів",
+                             subtitle: "«Глибоко» порівнює вміст байт у байт — повільніше, але точніше.")
+                Spacer()
+                Picker("", selection: $viewModel.duplicateDepth) {
+                    Text("Швидко").tag(SettingsViewModel.DuplicateDepth.fast)
+                    Text("Звичайно").tag(SettingsViewModel.DuplicateDepth.normal)
+                    Text("Глибоко").tag(SettingsViewModel.DuplicateDepth.deep)
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+            }
+            .padding(.horizontal, 20).padding(.vertical, 13)
+            Divider().overlay(Theme.Colors.hairlineSoft)
+            modulesBlock
+        }
+    }
+
+    private var modulesBlock: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Які модулі включати у Smart Scan")
+                .font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textSecondary)
+                .padding(.bottom, 6)
+            CompactToggle(title: "Системний мотлох", isOn: $viewModel.moduleCleanup)
+            CompactToggle(title: "Space Lens", isOn: $viewModel.moduleLens)
+            CompactToggle(title: "Дублікати та фото", isOn: $viewModel.moduleDuplicates)
+            CompactToggle(title: "Застосунки", isOn: $viewModel.moduleUninstaller)
+            CompactToggle(title: "Обслуговування", isOn: $viewModel.modulePerformance)
+        }
+        .padding(.horizontal, 20).padding(.vertical, 14)
+    }
+
+    // MARK: Exclusions
+
+    private var exclusionsCard: some View {
+        SettingsCard(title: "Список винятків") {
+            Text("Файли, теки та застосунки тут Nimbus ніколи не торкається — навіть під час Smart Scan.")
+                .font(Theme.Font.body(12.5)).foregroundStyle(Theme.Colors.textSecondary)
+                .padding(.horizontal, 20).padding(.bottom, 12)
+            VStack(spacing: 8) {
+                ForEach(viewModel.exclusions, id: \.self) { path in
+                    ExclusionRow(path: path) { viewModel.removeExclusion(path) }
+                }
+                HStack(spacing: 9) {
+                    TextField("Перетягніть або введіть шлях…", text: $viewModel.newExclusionInput)
+                        .textFieldStyle(.plain)
+                        .font(Theme.Font.body(12.5))
+                        .padding(9)
+                        .background(Theme.Colors.surfaceFaint, in: RoundedRectangle(cornerRadius: 9))
+                        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.Colors.hairline, lineWidth: 0.5))
+                        .onSubmit { viewModel.addExclusion() }
+                    Button("Додати") { viewModel.addExclusion() }
+                        .buttonStyle(.plain)
+                        .font(Theme.Font.body(13, .semibold)).foregroundStyle(Theme.Colors.accentLighter)
+                        .padding(.vertical, 9).padding(.horizontal, 18)
+                        .background(Theme.Colors.accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 9))
+                }
+            }
+            .padding(.horizontal, 20).padding(.bottom, 14)
+        }
+    }
+
+    private var onboardingCard: some View {
+        HStack {
+            SettingLabel(title: "Знайомство з Nimbus", subtitle: "Переглянути привітання й пояснення дозволів знову.")
+            Spacer()
+            Button("Показати онбординг") { onReplayOnboarding() }
+                .buttonStyle(.plain)
+                .font(Theme.Font.body(13, .semibold)).foregroundStyle(Theme.Colors.textControl)
+                .padding(.vertical, 9).padding(.horizontal, 16)
+                .background(Theme.Colors.surfaceFaint, in: RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.Colors.hairline, lineWidth: 0.5))
+        }
+        .padding(16)
+        .nimbusCard()
+    }
+}
+
+// MARK: - Reusable settings components
+
+private struct SettingsCard<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title.uppercased()).font(Theme.Font.body(11, .semibold)).tracking(0.7)
+                .foregroundStyle(Theme.Colors.textQuaternary)
+                .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 10)
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .nimbusCard()
+    }
+}
+
+private struct SettingLabel: View {
+    let title: String
+    let subtitle: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(Theme.Font.body(13.5, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
+            Text(subtitle).font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct ToggleRow: View {
+    let title: String
+    let subtitle: String
+    @Binding var isOn: Bool
+    var body: some View {
+        HStack(spacing: 14) {
+            SettingLabel(title: title, subtitle: subtitle)
+            Spacer()
+            Toggle("", isOn: $isOn).labelsHidden().toggleStyle(.switch).tint(Theme.Colors.accent)
+        }
+        .padding(.horizontal, 20).padding(.vertical, 13)
+    }
+}
+
+private struct CompactToggle: View {
+    let title: String
+    @Binding var isOn: Bool
+    var body: some View {
+        HStack {
+            Text(title).font(Theme.Font.body(13)).foregroundStyle(Theme.Colors.textBright)
+            Spacer()
+            Toggle("", isOn: $isOn).labelsHidden().toggleStyle(.switch).tint(Theme.Colors.accent)
+        }
+        .padding(.vertical, 5)
+    }
+}
+
+private struct ExclusionRow: View {
+    let path: String
+    let onRemove: () -> Void
+    var body: some View {
+        HStack(spacing: 11) {
+            Text("ШЛЯХ").font(Theme.Font.body(9.5, .semibold))
+                .foregroundStyle(Theme.Colors.accentLight)
+                .padding(.vertical, 2).padding(.horizontal, 8)
+                .background(Theme.Colors.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 5))
+            Text(path).font(Theme.Font.mono(12.5)).foregroundStyle(Theme.Colors.textBright)
+                .lineLimit(1).truncationMode(.middle)
+            Spacer()
+            Button(action: onRemove) {
+                Image(systemName: "xmark").font(.system(size: 11))
+            }
+            .buttonStyle(.plain).foregroundStyle(Theme.Colors.textTertiary)
+        }
+        .padding(10)
+        .background(Theme.Colors.surfaceFaint, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.Colors.hairline, lineWidth: 0.5))
+    }
+}

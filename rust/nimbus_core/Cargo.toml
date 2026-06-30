@@ -1,0 +1,46 @@
+[package]
+name = "nimbus_core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
+description = "CPU-bound accelerator for Nimbus: parallel content hashing (duplicates) and perceptual hashing (similar photos)."
+license = "MIT"
+
+[lib]
+# staticlib -> linked into the app; cdylib -> consumed by uniffi-bindgen library mode;
+# lib (rlib) -> `cargo test` of the pure algorithms.
+crate-type = ["staticlib", "cdylib", "lib"]
+name = "nimbus_core"
+
+[features]
+# Pure algorithms compile + test with no FFI machinery. The `ffi` feature layers
+# the UniFFI bindings on top; the release/staging scripts always pass it.
+default = []
+ffi = ["dep:uniffi"]
+# Lets us run the in-tree `uniffi-bindgen` binary to emit Swift bindings.
+cli = ["uniffi/cli"]
+
+[dependencies]
+# Content hashing: cryptographically strong, very fast, with a memory-mapped
+# fast path for large files. We parallelize across files ourselves via rayon,
+# so we do NOT enable blake3's internal rayon (would oversubscribe the pool).
+blake3 = { version = "1.5", features = ["mmap"] }
+rayon = "1.10"
+# Only the codecs a photo library realistically holds. HEIC/RAW are decoded on
+# the Swift side via ImageIO and handed to `dhash_luma8` as a raw luma buffer.
+image = { version = "0.25", default-features = false, features = [
+    "jpeg",
+    "png",
+    "gif",
+    "bmp",
+    "tiff",
+    "webp",
+] }
+uniffi = { version = "0.28", optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bin]]
+name = "uniffi-bindgen"
+required-features = ["cli"]

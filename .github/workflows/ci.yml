@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Rust + Swift tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain versions
+        run: |
+          swift --version
+          rustc --version
+          cargo --version
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/**/Cargo.lock', 'rust/**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift') }}
+          restore-keys: ${{ runner.os }}-spm-
+
+      - name: Rust — cargo test (pure algorithms)
+        working-directory: rust
+        run: cargo test --no-fail-fast
+
+      - name: Rust — build FFI feature compiles
+        working-directory: rust
+        run: cargo build --release --features ffi
+
+      - name: Swift — package tests (NimbusKit + view models)
+        run: swift test
+
+  build-app:
+    name: Build app (xcodegen + xcodebuild)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Add x86_64 Rust target
+        run: rustup target add x86_64-apple-darwin
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build (Debug)
+        run: |
+          xcodebuild -project Nimbus.xcodeproj -scheme Nimbus \
+            -configuration Debug -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO build

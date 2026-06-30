@@ -1,0 +1,4 @@
+module nimbus_coreFFI {
+    header "nimbus_coreFFI.h"
+    export *
+}
