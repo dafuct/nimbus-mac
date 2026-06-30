@@ -6,6 +6,7 @@ import NimbusViewModels
 /// consumers, skinned to `Nimbus.dc.html`. Read-only: the design's core message
 /// is "pressure, not free gigabytes" — we never offer to "free" RAM.
 struct HealthView: View {
+    @Environment(Localizer.self) private var loc
     @Bindable var viewModel: HealthViewModel
 
     var body: some View {
@@ -26,19 +27,19 @@ struct HealthView: View {
     private var statCards: some View {
         HStack(spacing: 14) {
             gaugeCard(
-                title: "Тиск пам'яті",
+                title: loc("Тиск пам'яті"),
                 subtitle: pressureLabel,
                 value: pressurePercent,
                 color: snapshot.map { Theme.Colors.pressure($0.pressure) } ?? Theme.Colors.success
             )
             gaugeCard(
-                title: "Пам'ять",
+                title: loc("Пам'ять"),
                 subtitle: snapshot.map { "\($0.used.formattedBytes) / \($0.total.formattedBytes)" } ?? "—",
                 value: snapshot.map { $0.usedFraction } ?? 0,
                 color: Theme.Colors.accent
             )
             gaugeCard(
-                title: "Диск",
+                title: loc("Диск"),
                 subtitle: diskSubtitle,
                 value: disk.fraction,
                 color: Theme.Colors.warning
@@ -67,13 +68,13 @@ struct HealthView: View {
         .frame(maxWidth: .infinity)
         .nimbusCard()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title): \(subtitle), \(Int(value * 100)) відсотків")
+        .accessibilityLabel(loc("%@: %@, %lld відсотків", title, subtitle, Int(value * 100)))
     }
 
     private var pressureCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Пам'ять — тиск, а не «вільні гігабайти»").font(Theme.Font.body(15, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
-            Text("Порожня RAM — це змарнована RAM. macOS навмисно тримає її зайнятою кешем. Ми показуємо тиск пам'яті — наскільки системі бракує ресурсу.")
+            Text(loc("Пам'ять — тиск, а не «вільні гігабайти»")).font(Theme.Font.body(15, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
+            Text(loc("Порожня RAM — це змарнована RAM. macOS навмисно тримає її зайнятою кешем. Ми показуємо тиск пам'яті — наскільки системі бракує ресурсу."))
                 .font(Theme.Font.body(12.5)).foregroundStyle(Theme.Colors.textSecondary).lineSpacing(3)
                 .padding(.top, 8)
 
@@ -87,10 +88,10 @@ struct HealthView: View {
             }
             .padding(.top, 16)
             HStack {
-                Text("Норма"); Spacer(); Text("Помірний"); Spacer(); Text("Високий")
+                Text(loc("Норма")); Spacer(); Text(loc("Помірний")); Spacer(); Text(loc("Високий"))
             }.font(Theme.Font.body(10.5)).foregroundStyle(Theme.Colors.textTertiary).padding(.top, 6)
 
-            Text("НАЙБІЛЬШІ СПОЖИВАЧІ ПАМ'ЯТІ").font(Theme.Font.body(11, .semibold)).tracking(0.7)
+            Text(loc("НАЙБІЛЬШІ СПОЖИВАЧІ ПАМ'ЯТІ")).font(Theme.Font.body(11, .semibold)).tracking(0.7)
                 .foregroundStyle(Theme.Colors.textQuaternary).padding(.top, 22).padding(.bottom, 10)
 
             VStack(spacing: 3) {
@@ -121,9 +122,9 @@ struct HealthView: View {
     }
     private var pressureLabel: String {
         switch snapshot?.pressure {
-        case .warning: return "Помірний"
-        case .critical: return "Високий"
-        default: return "Норма"
+        case .warning: return loc("Помірний")
+        case .critical: return loc("Високий")
+        default: return loc("Норма")
         }
     }
 
@@ -136,6 +137,6 @@ struct HealthView: View {
         return (total > 0 ? Double(used) / Double(total) : 0, used, total)
     }
     private var diskSubtitle: String {
-        disk.total > 0 ? "\(disk.used.formattedBytes) зайнято" : "—"
+        disk.total > 0 ? loc("%@ зайнято", disk.used.formattedBytes) : "—"
     }
 }

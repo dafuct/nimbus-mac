@@ -1,10 +1,12 @@
 import SwiftUI
+import NimbusViewModels
 
 /// Top-level shell, skinned to `Nimbus.dc.html`: a custom dark sidebar (logo,
 /// Smart Scan, "Очищення" section, system-status card, bottom nav) + a main pane
 /// with the design's title·subtitle header bar.
 struct RootView: View {
     @Environment(AppEnvironment.self) private var env
+    @Environment(Localizer.self) private var loc
     @State private var selection: Module = .smartScan
     @State private var onboardingStep: Int? = UserDefaults.standard.bool(forKey: "nimbus_onboarded") ? nil : 0
 
@@ -56,22 +58,11 @@ struct RootView: View {
             mainPane
         }
         .background(Theme.Colors.window)
-        .preferredColorScheme(resolvedColorScheme)
+        .preferredColorScheme(.dark)   // Nimbus is dark-only by design
         .overlay {
             if onboardingStep != nil {
                 OnboardingView(step: $onboardingStep)
             }
-        }
-    }
-
-    /// Theme picker in Settings drives the system color scheme. The custom Nimbus
-    /// palette is dark-first (brand); a full light palette for custom surfaces is a
-    /// tracked follow-up (the design marks light as examples-only).
-    private var resolvedColorScheme: ColorScheme? {
-        switch env.settings.theme {
-        case .auto: return nil
-        case .light: return .light
-        case .dark: return .dark
         }
     }
 
@@ -88,11 +79,11 @@ struct RootView: View {
 
             navRow(.smartScan).padding(.horizontal, 12)
 
-            sectionHeader("Очищення")
+            sectionHeader(loc("Очищення"))
             VStack(spacing: 2) {
-                navRow(.cleanup, badge: "12.4 ГБ")
+                navRow(.cleanup, badge: loc("12.4 ГБ"))
                 navRow(.lens)
-                navRow(.duplicates, badge: "8.7 ГБ")
+                navRow(.duplicates, badge: loc("8.7 ГБ"))
                 navRow(.uninstaller)
                 navRow(.performance)
             }
@@ -125,7 +116,7 @@ struct RootView: View {
                 .shadow(color: Theme.Colors.accent.opacity(0.55), radius: 7, y: 4)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Nimbus").font(Theme.Font.body(15, .bold)).foregroundStyle(Theme.Colors.textPrimary)
-                Text("Догляд за Mac").font(Theme.Font.body(11, .medium)).foregroundStyle(Theme.Colors.textTertiary)
+                Text(loc("Догляд за Mac")).font(Theme.Font.body(11, .medium)).foregroundStyle(Theme.Colors.textTertiary)
             }
         }
     }
@@ -147,7 +138,7 @@ struct RootView: View {
                 Image(systemName: module.icon)
                     .font(.system(size: 14))
                     .frame(width: 18)
-                Text(module.title).font(Theme.Font.body(13, active ? .semibold : .medium))
+                Text(loc(module.title)).font(Theme.Font.body(13, active ? .semibold : .medium))
                 Spacer(minLength: 4)
                 if let badge {
                     Text(badge).font(Theme.Font.mono(10.5)).opacity(0.8)
@@ -165,17 +156,17 @@ struct RootView: View {
     private var systemStatusCard: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                Text("Стан системи").font(Theme.Font.body(11, .semibold)).foregroundStyle(Theme.Colors.textSecondary)
+                Text(loc("Стан системи")).font(Theme.Font.body(11, .semibold)).foregroundStyle(Theme.Colors.textSecondary)
                 Spacer()
                 HStack(spacing: 5) {
                     Circle().fill(Theme.Colors.success).frame(width: 7, height: 7)
                         .shadow(color: Theme.Colors.success, radius: 4)
-                    Text("Добре").font(Theme.Font.body(10.5, .semibold)).foregroundStyle(Theme.Colors.success)
+                    Text(loc("Добре")).font(Theme.Font.body(10.5, .semibold)).foregroundStyle(Theme.Colors.success)
                 }
             }
             HStack(spacing: 6) {
-                miniBar(label: "Тиск пам'яті", fraction: 0.34, color: Theme.Colors.success)
-                miniBar(label: "Диск", fraction: 0.71, color: Theme.Colors.warning)
+                miniBar(label: loc("Тиск пам'яті"), fraction: 0.34, color: Theme.Colors.success)
+                miniBar(label: loc("Диск"), fraction: 0.71, color: Theme.Colors.warning)
             }
         }
         .padding(.vertical, 11).padding(.horizontal, 13)
@@ -201,9 +192,9 @@ struct RootView: View {
     private var mainPane: some View {
         VStack(spacing: 0) {
             HStack(spacing: 9) {
-                Text(selection.title).font(Theme.Font.body(13.5, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
+                Text(loc(selection.title)).font(Theme.Font.body(13.5, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
                 Text("·").foregroundStyle(Theme.Colors.textQuaternary)
-                Text(selection.subtitle).font(Theme.Font.body(12.5, .medium)).foregroundStyle(Theme.Colors.textTertiary)
+                Text(loc(selection.subtitle)).font(Theme.Font.body(12.5, .medium)).foregroundStyle(Theme.Colors.textTertiary)
                 Spacer()
             }
             .padding(.horizontal, 26)
@@ -231,11 +222,12 @@ struct RootView: View {
 }
 
 struct PlaceholderView: View {
+    @Environment(Localizer.self) private var loc
     let title: String
     var body: some View {
         VStack(spacing: 8) {
-            Text(title).font(Theme.Font.display(20)).foregroundStyle(Theme.Colors.textSecondary)
-            Text("Цей модуль готується… (домен реалізовано й покрито тестами в NimbusKit)")
+            Text(loc(title)).font(Theme.Font.display(20)).foregroundStyle(Theme.Colors.textSecondary)
+            Text(loc("Цей модуль готується… (домен реалізовано й покрито тестами в NimbusKit)"))
                 .font(Theme.Font.body(13)).foregroundStyle(Theme.Colors.textQuaternary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

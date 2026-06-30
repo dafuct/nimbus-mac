@@ -10,6 +10,7 @@ struct NimbusApp: App {
         WindowGroup {
             RootView()
                 .environment(environment)
+                .environment(environment.localizer)
                 .frame(minWidth: 1120, minHeight: 720)
         }
         .windowStyle(.hiddenTitleBar)   // custom dark chrome; real traffic lights overlay the sidebar
@@ -18,6 +19,7 @@ struct NimbusApp: App {
         // Health Monitor menu-bar item — read-only, no "free RAM" button.
         MenuBarExtra("Nimbus", systemImage: "gauge.with.dots.needle.67percent") {
             HealthMenuView(viewModel: health)
+                .environment(environment.localizer)
                 .onAppear { health.start() }
         }
         .menuBarExtraStyle(.window)

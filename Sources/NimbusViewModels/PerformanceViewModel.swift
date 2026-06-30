@@ -34,7 +34,9 @@ public final class PerformanceViewModel {
     public var appLaunchAtLogin: Bool { didSet { applyLaunch() } }
     public private(set) var isRunning = false
     public private(set) var helperInstalled = false
-    public private(set) var helperMessage: String?
+    /// Raw OS error from a failed install (nil = none). The view localizes the
+    /// surrounding sentence; this holds only the underlying message.
+    public private(set) var helperErrorText: String?
 
     @ObservationIgnored private let service: PerformanceService
     @ObservationIgnored private let helper: PrivilegedHelperClient
@@ -77,10 +79,10 @@ public final class PerformanceViewModel {
     public func installHelper() async {
         do {
             try await helper.install()
-            helperMessage = nil
+            helperErrorText = nil
             await refreshHelper()
         } catch {
-            helperMessage = "Не вдалося встановити помічник: \(error.localizedDescription). Потрібен підпис Developer ID."
+            helperErrorText = error.localizedDescription
         }
     }
 

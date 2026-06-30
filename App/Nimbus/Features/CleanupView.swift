@@ -6,6 +6,7 @@ import NimbusViewModels
 /// categories are pre-ticked and badged "Безпечно"; manual ones "Перевірте" and
 /// start unticked. Skinned to `Nimbus.dc.html`.
 struct CleanupView: View {
+    @Environment(Localizer.self) private var loc
     @Bindable var viewModel: CleanupViewModel
     @State private var confirming = false
 
@@ -18,11 +19,11 @@ struct CleanupView: View {
             footer
         }
         .background(Theme.Colors.window)
-        .confirmationDialog("Перемістити вибране в Кошик?", isPresented: $confirming, titleVisibility: .visible) {
-            Button("Перемістити в Кошик") { Task { await viewModel.removeSelected() } }
-            Button("Скасувати", role: .cancel) {}
+        .confirmationDialog(loc("Перемістити вибране в Кошик?"), isPresented: $confirming, titleVisibility: .visible) {
+            Button(loc("Перемістити в Кошик")) { Task { await viewModel.removeSelected() } }
+            Button(loc("Скасувати"), role: .cancel) {}
         } message: {
-            Text("Файли не зникнуть одразу — їх можна відновити з Кошика.")
+            Text(loc("Файли не зникнуть одразу — їх можна відновити з Кошика."))
         }
         .overlay {
             if let report = viewModel.lastRemoval {
@@ -35,9 +36,9 @@ struct CleanupView: View {
         HStack {
             if case .scanning = viewModel.phase {
                 ProgressView().controlSize(.small)
-                Button("Скасувати") { viewModel.cancel() }
+                Button(loc("Скасувати")) { viewModel.cancel() }
             } else {
-                Button("Сканувати") { viewModel.scan() }.keyboardShortcut("r")
+                Button(loc("Сканувати")) { viewModel.scan() }.keyboardShortcut("r")
             }
             Spacer()
             safetyHint
@@ -48,7 +49,7 @@ struct CleanupView: View {
     private var safetyHint: some View {
         HStack(spacing: 8) {
             Image(systemName: "arrow.uturn.backward").font(.system(size: 11))
-            Text("Усе видаляється в Кошик · «Перевірте» залишаємо невибраним").font(Theme.Font.body(12))
+            Text(loc("Усе видаляється в Кошик · «Перевірте» залишаємо невибраним")).font(Theme.Font.body(12))
         }
         .foregroundStyle(Theme.Colors.accentLight)
         .padding(.vertical, 7).padding(.horizontal, 13)
@@ -59,16 +60,16 @@ struct CleanupView: View {
     private var content: some View {
         switch viewModel.phase {
         case .idle:
-            ContentUnavailableView("Скануйте, щоб знайти мотлох", systemImage: "sparkles",
-                description: Text("Кеші, логи, Xcode-сміття та інше — лише з відомо-безпечних шляхів."))
+            ContentUnavailableView(loc("Скануйте, щоб знайти мотлох"), systemImage: "sparkles",
+                description: Text(loc("Кеші, логи, Xcode-сміття та інше — лише з відомо-безпечних шляхів.")))
         case .scanning:
-            VStack(spacing: 8) { ProgressView(); Text("Сканування…").foregroundStyle(Theme.Colors.textSecondary) }
+            VStack(spacing: 8) { ProgressView(); Text(loc("Сканування…")).foregroundStyle(Theme.Colors.textSecondary) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
-            ContentUnavailableView("Сканування не вдалося", systemImage: "exclamationmark.triangle", description: Text(message))
+            ContentUnavailableView(loc("Сканування не вдалося"), systemImage: "exclamationmark.triangle", description: Text(message))
         case let .loaded(groups):
             if groups.isEmpty {
-                ContentUnavailableView("Нічого прибирати", systemImage: "checkmark.seal")
+                ContentUnavailableView(loc("Нічого прибирати"), systemImage: "checkmark.seal")
             } else {
                 ScrollView {
                     LazyVStack(spacing: 10) {
@@ -85,13 +86,13 @@ struct CleanupView: View {
     private var footer: some View {
         HStack(spacing: Theme.Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("До переміщення в Кошик").font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textTertiary)
-                Text("\(viewModel.reclaimableSelected.formattedBytes) · \(viewModel.selection.count) елементів")
+                Text(loc("До переміщення в Кошик")).font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textTertiary)
+                Text(loc("%@ · %lld елементів", viewModel.reclaimableSelected.formattedBytes, viewModel.selection.count))
                     .font(Theme.Font.display(21)).foregroundStyle(Theme.Colors.textPrimary)
             }
             Spacer()
             Button { confirming = true } label: {
-                Label("Перемістити в Кошик", systemImage: "trash")
+                Label(loc("Перемістити в Кошик"), systemImage: "trash")
             }
             .buttonStyle(.plain).modifier(TrashButton(enabled: !viewModel.selection.isEmpty))
             .disabled(viewModel.selection.isEmpty)
@@ -113,6 +114,7 @@ private struct TrashButton: ViewModifier {
 }
 
 private struct CategoryCard: View {
+    @Environment(Localizer.self) private var loc
     let group: CleanupGroup
     @Bindable var viewModel: CleanupViewModel
 
@@ -149,14 +151,14 @@ private struct CategoryCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
-                    Text(group.category.rawValue).font(Theme.Font.body(14, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
-                    Text(isSafe ? "Безпечно" : "Перевірте")
+                    Text(loc.category(group.category)).font(Theme.Font.body(14, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
+                    Text(isSafe ? loc("Безпечно") : loc("Перевірте"))
                         .font(Theme.Font.body(10, .semibold))
                         .foregroundStyle(isSafe ? Theme.Colors.success : Theme.Colors.warning)
                         .padding(.vertical, 2).padding(.horizontal, 7)
                         .background((isSafe ? Theme.Colors.success : Theme.Colors.warning).opacity(0.13), in: RoundedRectangle(cornerRadius: 5))
                 }
-                Text("\(viewModel.selectedCount(in: group)) / \(group.items.count) вибрано")
+                Text(loc("%lld / %lld вибрано", viewModel.selectedCount(in: group), group.items.count))
                     .font(Theme.Font.body(11.5)).foregroundStyle(Theme.Colors.textTertiary)
             }
             Spacer()

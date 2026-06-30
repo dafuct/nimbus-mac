@@ -1,9 +1,10 @@
 import SwiftUI
 import NimbusViewModels
 
-/// Settings — General, Scan & Safety, and the user exclusion list. Skinned to
-/// `Nimbus.dc.html`. Split into small typed subviews for the type-checker's sake.
+/// Settings — General (incl. language), Scan & Safety, and the user exclusion
+/// list. Localized via `loc`; the language picker switches UK/EN instantly.
 struct SettingsView: View {
+    @Environment(Localizer.self) private var loc
     @Bindable var viewModel: SettingsViewModel
     var onReplayOnboarding: () -> Void = {}
 
@@ -25,22 +26,22 @@ struct SettingsView: View {
     // MARK: General
 
     private var generalCard: some View {
-        SettingsCard(title: "Загальне") {
-            ToggleRow(title: "Компаньйон у menu bar",
-                      subtitle: "Живий індикатор стану та швидке сканування з рядка меню.",
+        SettingsCard(title: loc("Загальне")) {
+            ToggleRow(title: loc("Компаньйон у menu bar"),
+                      subtitle: loc("Живий індикатор стану та швидке сканування з рядка меню."),
                       isOn: $viewModel.menuBarEnabled)
             Divider().overlay(Theme.Colors.hairlineSoft)
-            ToggleRow(title: "Запускати під час входу",
-                      subtitle: "Nimbus стартує разом із системою (фоново, без вікна).",
+            ToggleRow(title: loc("Запускати під час входу"),
+                      subtitle: loc("Nimbus стартує разом із системою (фоново, без вікна)."),
                       isOn: $viewModel.launchAtLogin)
             Divider().overlay(Theme.Colors.hairlineSoft)
             HStack {
-                SettingLabel(title: "Оформлення", subtitle: "Світла тема доступна як окремі приклади.")
+                SettingLabel(title: loc("Мова"), subtitle: loc("Інтерфейс перемикається миттєво."))
                 Spacer()
-                Picker("", selection: $viewModel.theme) {
-                    Text("Авто").tag(SettingsViewModel.ThemeMode.auto)
-                    Text("Світла").tag(SettingsViewModel.ThemeMode.light)
-                    Text("Темна").tag(SettingsViewModel.ThemeMode.dark)
+                Picker("", selection: Binding(get: { loc.language }, set: { loc.language = $0 })) {
+                    ForEach(AppLanguage.allCases, id: \.self) { lang in
+                        Text(lang.displayName).tag(lang)
+                    }
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
             }
@@ -51,23 +52,23 @@ struct SettingsView: View {
     // MARK: Scan & safety
 
     private var scanSafetyCard: some View {
-        SettingsCard(title: "Сканування й безпека") {
-            ToggleRow(title: "Безпечне видалення (у Кошик)",
-                      subtitle: "Усе видалене спершу йде в Кошик. Вимкнення дозволяє остаточне видалення — обережно.",
+        SettingsCard(title: loc("Сканування й безпека")) {
+            ToggleRow(title: loc("Безпечне видалення (у Кошик)"),
+                      subtitle: loc("Усе видалене спершу йде в Кошик. Вимкнення дозволяє остаточне видалення — обережно."),
                       isOn: $viewModel.safeDelete)
             Divider().overlay(Theme.Colors.hairlineSoft)
-            ToggleRow(title: "Сканувати поштові вкладення",
-                      subtitle: "Вимкнено за замовчуванням — це ваші особисті дані.",
+            ToggleRow(title: loc("Сканувати поштові вкладення"),
+                      subtitle: loc("Вимкнено за замовчуванням — це ваші особисті дані."),
                       isOn: $viewModel.scanMail)
             Divider().overlay(Theme.Colors.hairlineSoft)
             HStack {
-                SettingLabel(title: "Глибина пошуку дублікатів",
-                             subtitle: "«Глибоко» порівнює вміст байт у байт — повільніше, але точніше.")
+                SettingLabel(title: loc("Глибина пошуку дублікатів"),
+                             subtitle: loc("«Глибоко» порівнює вміст байт у байт — повільніше, але точніше."))
                 Spacer()
                 Picker("", selection: $viewModel.duplicateDepth) {
-                    Text("Швидко").tag(SettingsViewModel.DuplicateDepth.fast)
-                    Text("Звичайно").tag(SettingsViewModel.DuplicateDepth.normal)
-                    Text("Глибоко").tag(SettingsViewModel.DuplicateDepth.deep)
+                    Text(loc("Швидко")).tag(SettingsViewModel.DuplicateDepth.fast)
+                    Text(loc("Звичайно")).tag(SettingsViewModel.DuplicateDepth.normal)
+                    Text(loc("Глибоко")).tag(SettingsViewModel.DuplicateDepth.deep)
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
             }
@@ -79,14 +80,14 @@ struct SettingsView: View {
 
     private var modulesBlock: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Які модулі включати у Smart Scan")
+            Text(loc("Які модулі включати у Smart Scan"))
                 .font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textSecondary)
                 .padding(.bottom, 6)
-            CompactToggle(title: "Системний мотлох", isOn: $viewModel.moduleCleanup)
-            CompactToggle(title: "Space Lens", isOn: $viewModel.moduleLens)
-            CompactToggle(title: "Дублікати та фото", isOn: $viewModel.moduleDuplicates)
-            CompactToggle(title: "Застосунки", isOn: $viewModel.moduleUninstaller)
-            CompactToggle(title: "Обслуговування", isOn: $viewModel.modulePerformance)
+            CompactToggle(title: loc("Системний мотлох"), isOn: $viewModel.moduleCleanup)
+            CompactToggle(title: loc("Space Lens"), isOn: $viewModel.moduleLens)
+            CompactToggle(title: loc("Дублікати та фото"), isOn: $viewModel.moduleDuplicates)
+            CompactToggle(title: loc("Застосунки"), isOn: $viewModel.moduleUninstaller)
+            CompactToggle(title: loc("Обслуговування"), isOn: $viewModel.modulePerformance)
         }
         .padding(.horizontal, 20).padding(.vertical, 14)
     }
@@ -94,8 +95,8 @@ struct SettingsView: View {
     // MARK: Exclusions
 
     private var exclusionsCard: some View {
-        SettingsCard(title: "Список винятків") {
-            Text("Файли, теки та застосунки тут Nimbus ніколи не торкається — навіть під час Smart Scan.")
+        SettingsCard(title: loc("Список винятків")) {
+            Text(loc("Файли, теки та застосунки тут Nimbus ніколи не торкається — навіть під час Smart Scan."))
                 .font(Theme.Font.body(12.5)).foregroundStyle(Theme.Colors.textSecondary)
                 .padding(.horizontal, 20).padding(.bottom, 12)
             VStack(spacing: 8) {
@@ -103,14 +104,14 @@ struct SettingsView: View {
                     ExclusionRow(path: path) { viewModel.removeExclusion(path) }
                 }
                 HStack(spacing: 9) {
-                    TextField("Перетягніть або введіть шлях…", text: $viewModel.newExclusionInput)
+                    TextField(loc("Перетягніть або введіть шлях…"), text: $viewModel.newExclusionInput)
                         .textFieldStyle(.plain)
                         .font(Theme.Font.body(12.5))
                         .padding(9)
                         .background(Theme.Colors.surfaceFaint, in: RoundedRectangle(cornerRadius: 9))
                         .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.Colors.hairline, lineWidth: 0.5))
                         .onSubmit { viewModel.addExclusion() }
-                    Button("Додати") { viewModel.addExclusion() }
+                    Button(loc("Додати")) { viewModel.addExclusion() }
                         .buttonStyle(.plain)
                         .font(Theme.Font.body(13, .semibold)).foregroundStyle(Theme.Colors.accentLighter)
                         .padding(.vertical, 9).padding(.horizontal, 18)
@@ -123,9 +124,9 @@ struct SettingsView: View {
 
     private var onboardingCard: some View {
         HStack {
-            SettingLabel(title: "Знайомство з Nimbus", subtitle: "Переглянути привітання й пояснення дозволів знову.")
+            SettingLabel(title: loc("Знайомство з Nimbus"), subtitle: loc("Переглянути привітання й пояснення дозволів знову."))
             Spacer()
-            Button("Показати онбординг") { onReplayOnboarding() }
+            Button(loc("Показати онбординг")) { onReplayOnboarding() }
                 .buttonStyle(.plain)
                 .font(Theme.Font.body(13, .semibold)).foregroundStyle(Theme.Colors.textControl)
                 .padding(.vertical, 9).padding(.horizontal, 16)
@@ -137,7 +138,7 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Reusable settings components
+// MARK: - Reusable settings components (render already-localized strings verbatim)
 
 private struct SettingsCard<Content: View>: View {
     let title: String
@@ -194,11 +195,12 @@ private struct CompactToggle: View {
 }
 
 private struct ExclusionRow: View {
+    @Environment(Localizer.self) private var loc
     let path: String
     let onRemove: () -> Void
     var body: some View {
         HStack(spacing: 11) {
-            Text("ШЛЯХ").font(Theme.Font.body(9.5, .semibold))
+            Text(loc("ШЛЯХ")).font(Theme.Font.body(9.5, .semibold))
                 .foregroundStyle(Theme.Colors.accentLight)
                 .padding(.vertical, 2).padding(.horizontal, 8)
                 .background(Theme.Colors.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 5))

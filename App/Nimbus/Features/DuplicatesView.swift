@@ -6,6 +6,7 @@ import NimbusViewModels
 /// (perceptual dHash) tabs. Skinned to `Nimbus.dc.html`. Expressions are split
 /// into small typed subviews to keep the type-checker stable.
 struct DuplicatesView: View {
+    @Environment(Localizer.self) private var loc
     @Bindable var viewModel: DuplicatesViewModel
     @State private var permanently = false
     @State private var confirmingPermanent = false
@@ -20,16 +21,16 @@ struct DuplicatesView: View {
         }
         .background(Theme.Colors.window)
         .confirmationDialog(
-            "Видалити вибране остаточно? Дію не можна скасувати.",
+            loc("Видалити вибране остаточно? Дію не можна скасувати."),
             isPresented: $confirmingPermanent, titleVisibility: .visible
         ) {
-            Button("Видалити остаточно", role: .destructive) {
+            Button(loc("Видалити остаточно"), role: .destructive) {
                 Task {
                     if viewModel.tab == .files { await viewModel.removeSelected(permanently: true) }
                     else { await viewModel.removeSelectedPhotos(permanently: true) }
                 }
             }
-            Button("Скасувати", role: .cancel) {}
+            Button(loc("Скасувати"), role: .cancel) {}
         }
         .overlay {
             if let report = viewModel.lastRemoval {
@@ -52,8 +53,8 @@ struct DuplicatesView: View {
 
     private var tabs: some View {
         HStack(spacing: 3) {
-            tabButton("Дублікати файлів", .files)
-            tabButton("Схожі фото", .photos)
+            tabButton(loc("Дублікати файлів"), .files)
+            tabButton(loc("Схожі фото"), .photos)
         }
         .padding(3)
         .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 11))
@@ -75,15 +76,15 @@ struct DuplicatesView: View {
     private var actionButton: some View {
         if viewModel.tab == .files {
             if viewModel.isScanning {
-                ProgressView().controlSize(.small); Button("Скасувати") { viewModel.cancel() }
+                ProgressView().controlSize(.small); Button(loc("Скасувати")) { viewModel.cancel() }
             } else {
-                Button("Знайти") { viewModel.scan() }.keyboardShortcut("r")
+                Button(loc("Знайти")) { viewModel.scan() }.keyboardShortcut("r")
             }
         } else {
             if viewModel.isScanningPhotos {
-                ProgressView().controlSize(.small); Button("Скасувати") { viewModel.cancelPhotos() }
+                ProgressView().controlSize(.small); Button(loc("Скасувати")) { viewModel.cancelPhotos() }
             } else {
-                Button("Знайти") { viewModel.scanPhotos() }.keyboardShortcut("r")
+                Button(loc("Знайти")) { viewModel.scanPhotos() }.keyboardShortcut("r")
             }
         }
     }
@@ -91,7 +92,7 @@ struct DuplicatesView: View {
     private var autoHint: some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkles").font(.system(size: 12))
-            Text("Авто-вибір залишає найкращу копію").font(Theme.Font.body(12))
+            Text(loc("Авто-вибір залишає найкращу копію")).font(Theme.Font.body(12))
         }
         .foregroundStyle(Theme.Colors.accentLight)
         .padding(.vertical, 7).padding(.horizontal, 13)
@@ -109,15 +110,15 @@ struct DuplicatesView: View {
     private var filesContent: some View {
         switch viewModel.phase {
         case .idle:
-            ContentUnavailableView("Знайдіть дублікати файлів", systemImage: "doc.on.doc",
-                description: Text("Сканує домівку, потім звіряє схожі файли в Rust для точного збігу."))
+            ContentUnavailableView(loc("Знайдіть дублікати файлів"), systemImage: "doc.on.doc",
+                description: Text(loc("Сканує домівку, потім звіряє схожі файли в Rust для точного збігу.")))
         case .scanning:
-            scanningView("\(filesProgress) файлів перевірено")
+            scanningView(loc("%lld файлів перевірено", filesProgress))
         case .failed(let message):
-            ContentUnavailableView("Сканування не вдалося", systemImage: "exclamationmark.triangle", description: Text(message))
+            ContentUnavailableView(loc("Сканування не вдалося"), systemImage: "exclamationmark.triangle", description: Text(message))
         case .loaded:
             if viewModel.groups.isEmpty {
-                ContentUnavailableView("Дублікатів не знайдено", systemImage: "checkmark.seal")
+                ContentUnavailableView(loc("Дублікатів не знайдено"), systemImage: "checkmark.seal")
             } else {
                 List {
                     ForEach(viewModel.groups) { group in
@@ -136,9 +137,9 @@ struct DuplicatesView: View {
 
     private func fileHeader(_ group: NimbusKit.DuplicateGroup) -> some View {
         HStack {
-            Text("\(group.files.count) копій · \(group.fileSize.formattedBytes) кожна")
+            Text(loc("%lld копій · %@ кожна", group.files.count, group.fileSize.formattedBytes))
             Spacer()
-            Text("Звільнити \(group.reclaimableBytes.formattedBytes)").foregroundStyle(Theme.Colors.accentLight)
+            Text(loc("Звільнити %@", group.reclaimableBytes.formattedBytes)).foregroundStyle(Theme.Colors.accentLight)
         }
         .font(Theme.Font.body(11.5))
     }
@@ -155,15 +156,15 @@ struct DuplicatesView: View {
     private var photosContent: some View {
         switch viewModel.photoPhase {
         case .idle:
-            ContentUnavailableView("Знайдіть схожі фото", systemImage: "photo.on.rectangle.angled",
-                description: Text("Perceptual-хешування (Rust) групує візуально схожі знімки."))
+            ContentUnavailableView(loc("Знайдіть схожі фото"), systemImage: "photo.on.rectangle.angled",
+                description: Text(loc("Perceptual-хешування (Rust) групує візуально схожі знімки.")))
         case .scanning:
-            scanningView("Хешування фото…")
+            scanningView(loc("Хешування фото…"))
         case .failed(let message):
-            ContentUnavailableView("Сканування не вдалося", systemImage: "exclamationmark.triangle", description: Text(message))
+            ContentUnavailableView(loc("Сканування не вдалося"), systemImage: "exclamationmark.triangle", description: Text(message))
         case .loaded:
             if viewModel.photoGroups.isEmpty {
-                ContentUnavailableView("Схожих фото не знайдено", systemImage: "checkmark.seal")
+                ContentUnavailableView(loc("Схожих фото не знайдено"), systemImage: "checkmark.seal")
             } else {
                 ScrollView {
                     LazyVStack(spacing: 14) {
@@ -189,9 +190,9 @@ struct DuplicatesView: View {
 
     private var footer: some View {
         HStack(spacing: Theme.Spacing.md) {
-            Toggle("Видаляти остаточно", isOn: $permanently).toggleStyle(.switch).tint(Theme.Colors.accent)
+            Toggle(loc("Видаляти остаточно"), isOn: $permanently).toggleStyle(.switch).tint(Theme.Colors.accent)
             Spacer()
-            Text("\(selectedCount) вибрано · \(selectedReclaim.formattedBytes)")
+            Text(loc("%lld вибрано · %@", selectedCount, selectedReclaim.formattedBytes))
                 .font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textSecondary)
             removeButton
         }
@@ -217,7 +218,7 @@ struct DuplicatesView: View {
                 }
             }
         } label: {
-            Label(permanently ? "Видалити…" : "Перемістити в Кошик", systemImage: "trash")
+            Label(permanently ? loc("Видалити…") : loc("Перемістити в Кошик"), systemImage: "trash")
         }
         .disabled(selectedCount == 0)
     }
@@ -243,6 +244,7 @@ private struct DuplicateFileRow: View {
 }
 
 private struct PhotoSeriesCard: View {
+    @Environment(Localizer.self) private var loc
     let index: Int
     let group: SimilarPhotoGroup
     @Bindable var viewModel: DuplicatesViewModel
@@ -251,8 +253,8 @@ private struct PhotoSeriesCard: View {
         VStack(alignment: .leading, spacing: 13) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Серія \(index + 1)").font(Theme.Font.body(14, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
-                    Text("\(group.photos.count) фото · \(group.photos.count - 1) до видалення")
+                    Text(loc("Серія %lld", index + 1)).font(Theme.Font.body(14, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
+                    Text(loc("%lld фото · %lld до видалення", group.photos.count, group.photos.count - 1))
                         .font(Theme.Font.body(11.5)).foregroundStyle(Theme.Colors.textTertiary)
                 }
                 Spacer()
@@ -277,6 +279,7 @@ private struct PhotoSeriesCard: View {
 }
 
 private struct PhotoTile: View {
+    @Environment(Localizer.self) private var loc
     let photo: SimilarPhoto
     let isBest: Bool
     let isSelected: Bool
@@ -293,7 +296,7 @@ private struct PhotoTile: View {
             if isBest {
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill").font(.system(size: 9))
-                    Text("Залишити").font(Theme.Font.body(10.5, .semibold))
+                    Text(loc("Залишити")).font(Theme.Font.body(10.5, .semibold))
                 }
                 .foregroundStyle(.white)
                 .padding(.vertical, 3).padding(.horizontal, 8)

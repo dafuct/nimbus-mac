@@ -9,12 +9,10 @@ import NimbusKit
 @Observable
 public final class SettingsViewModel {
     public enum DuplicateDepth: String, Sendable, CaseIterable { case fast, normal, deep }
-    public enum ThemeMode: String, Sendable, CaseIterable { case auto, light, dark }
 
     // General
     public var menuBarEnabled: Bool { didSet { persist(\.menuBarEnabled, "menuBarEnabled") } }
     public var launchAtLogin: Bool { didSet { applyLaunchAtLogin() } }
-    public var theme: ThemeMode { didSet { defaults.set(theme.rawValue, forKey: "theme") } }
 
     // Scan & safety
     public var safeDelete: Bool { didSet { persist(\.safeDelete, "safeDelete") } }
@@ -38,7 +36,6 @@ public final class SettingsViewModel {
     public init() {
         let d = UserDefaults.standard
         menuBarEnabled = d.object(forKey: "menuBarEnabled") as? Bool ?? true
-        theme = ThemeMode(rawValue: d.string(forKey: "theme") ?? "") ?? .dark
         safeDelete = d.object(forKey: "safeDelete") as? Bool ?? true
         scanMail = d.object(forKey: "scanMail") as? Bool ?? false
         duplicateDepth = DuplicateDepth(rawValue: d.string(forKey: "dupDepth") ?? "") ?? .normal

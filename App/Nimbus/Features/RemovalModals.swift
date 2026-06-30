@@ -1,10 +1,12 @@
 import SwiftUI
 import NimbusKit
+import NimbusViewModels
 
 /// Shared "freed space" celebration overlay shown after a removal completes.
 /// Skinned to `Nimbus.dc.html`'s done modal. Reusable across Cleanup / Duplicates
 /// / Uninstaller.
 struct RemovalDoneOverlay: View {
+    @Environment(Localizer.self) private var loc
     let reclaimedBytes: Int64
     let onClose: () -> Void
 
@@ -24,12 +26,12 @@ struct RemovalDoneOverlay: View {
                         .shadow(color: Theme.Colors.success.opacity(0.6), radius: 14, y: 8)
                 }
                 .padding(.bottom, 20)
-                Text("Вивільнено \(reclaimedBytes.formattedBytes)")
+                Text(loc("Вивільнено %@", reclaimedBytes.formattedBytes))
                     .font(Theme.Font.display(28)).foregroundStyle(Theme.Colors.textPrimary)
-                Text("Файли у Кошику — можна відновити будь-коли. Очистіть Кошик, щоб остаточно повернути місце.")
+                Text(loc("Файли у Кошику — можна відновити будь-коли. Очистіть Кошик, щоб остаточно повернути місце."))
                     .font(Theme.Font.body(13.5)).foregroundStyle(Theme.Colors.textSecondary)
                     .multilineTextAlignment(.center).lineSpacing(2).padding(.top, 9)
-                Button("Готово") { onClose() }
+                Button(loc("Готово")) { onClose() }
                     .buttonStyle(.plain)
                     .font(Theme.Font.body(14, .semibold)).foregroundStyle(.white)
                     .frame(maxWidth: .infinity)

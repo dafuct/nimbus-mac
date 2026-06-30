@@ -4,9 +4,9 @@ import NimbusViewModels
 
 /// The Smart Scan hero — the app's home. Idle shows the scan orb; running shows
 /// the current stage; done shows result tiles built from the real orchestrated
-/// scan (`SmartScanViewModel`). Cheap modules report real numbers; heavy ones are
-/// "review" tiles that open the module. Skinned to `Nimbus.dc.html`.
+/// scan (`SmartScanViewModel`). Localized via `loc`. Skinned to `Nimbus.dc.html`.
 struct SmartScanView: View {
+    @Environment(Localizer.self) private var loc
     @Bindable var viewModel: SmartScanViewModel
     var onOpenModule: (RootView.Module) -> Void
 
@@ -21,8 +21,6 @@ struct SmartScanView: View {
         .background(Theme.Colors.window)
     }
 
-    // MARK: Idle
-
     private var idle: some View {
         VStack(spacing: 6) {
             ZStack {
@@ -33,8 +31,8 @@ struct SmartScanView: View {
                 Circle().strokeBorder(Theme.Colors.hairline, lineWidth: 0.5).frame(width: 230, height: 230)
                 Button(action: { viewModel.run() }) {
                     VStack(spacing: 2) {
-                        Text("Сканувати").font(Theme.Font.display(23, .semibold)).foregroundStyle(.white)
-                        Text("Перевірити весь Mac").font(Theme.Font.body(12, .medium)).foregroundStyle(.white.opacity(0.78))
+                        Text(loc("Сканувати")).font(Theme.Font.display(23, .semibold)).foregroundStyle(.white)
+                        Text(loc("Перевірити весь Mac")).font(Theme.Font.body(12, .medium)).foregroundStyle(.white.opacity(0.78))
                     }
                     .frame(width: 172, height: 172)
                     .background(Theme.Gradients.scanButton, in: Circle())
@@ -43,8 +41,8 @@ struct SmartScanView: View {
                 .buttonStyle(.plain)
             }
             VStack(spacing: 10) {
-                Text("Готові оглянути ваш Mac").font(Theme.Font.display(26)).foregroundStyle(Theme.Colors.textPrimary)
-                Text("Nimbus перевірить усі модулі й покаже, що можна безпечно прибрати. Нічого не видаляється без вашого підтвердження.")
+                Text(loc("Готові оглянути ваш Mac")).font(Theme.Font.display(26)).foregroundStyle(Theme.Colors.textPrimary)
+                Text(loc("Nimbus перевірить усі модулі й покаже, що можна безпечно прибрати. Нічого не видаляється без вашого підтвердження."))
                     .font(Theme.Font.body(14)).foregroundStyle(Theme.Colors.textSecondary)
                     .multilineTextAlignment(.center).frame(maxWidth: 430).lineSpacing(3)
             }
@@ -53,8 +51,6 @@ struct SmartScanView: View {
         .frame(maxWidth: .infinity).padding(40)
     }
 
-    // MARK: Scanning
-
     private var scanning: some View {
         VStack(spacing: 18) {
             ZStack {
@@ -62,15 +58,13 @@ struct SmartScanView: View {
                 ProgressView().controlSize(.large)
             }
             VStack(spacing: 4) {
-                Text("Сканування…").font(Theme.Font.display(20)).foregroundStyle(Theme.Colors.textPrimary)
-                Text(viewModel.currentStage).font(Theme.Font.body(13, .semibold)).foregroundStyle(Theme.Colors.accentLight)
+                Text(loc("Сканування…")).font(Theme.Font.display(20)).foregroundStyle(Theme.Colors.textPrimary)
+                Text(loc(viewModel.currentStage)).font(Theme.Font.body(13, .semibold)).foregroundStyle(Theme.Colors.accentLight)
             }
-            Button("Скасувати") { viewModel.cancel() }.buttonStyle(.plain).foregroundStyle(Theme.Colors.textControl)
+            Button(loc("Скасувати")) { viewModel.cancel() }.buttonStyle(.plain).foregroundStyle(Theme.Colors.textControl)
         }
         .frame(maxWidth: .infinity, minHeight: 460).padding(40)
     }
-
-    // MARK: Done
 
     private var done: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -78,18 +72,18 @@ struct SmartScanView: View {
                 VStack(alignment: .leading, spacing: 11) {
                     HStack(spacing: 7) {
                         Circle().fill(Theme.Colors.success).frame(width: 6, height: 6)
-                        Text("Перевірку завершено").font(Theme.Font.body(11.5, .semibold)).foregroundStyle(Theme.Colors.success)
+                        Text(loc("Перевірку завершено")).font(Theme.Font.body(11.5, .semibold)).foregroundStyle(Theme.Colors.success)
                     }
                     .padding(.vertical, 4).padding(.horizontal, 11)
                     .background(Theme.Colors.success.opacity(0.13), in: Capsule())
 
-                    (Text("Знайдено ").foregroundStyle(Theme.Colors.textPrimary)
+                    (Text(loc("Знайдено ")).foregroundStyle(Theme.Colors.textPrimary)
                      + Text(viewModel.totalFound.formattedBytes).foregroundStyle(Theme.Colors.accentLight)
-                     + Text(", які можна безпечно прибрати").foregroundStyle(Theme.Colors.textPrimary))
+                     + Text(loc(", які можна безпечно прибрати")).foregroundStyle(Theme.Colors.textPrimary))
                         .font(Theme.Font.display(32))
                 }
                 Spacer()
-                Button("Сканувати знову") { viewModel.run() }
+                Button(loc("Сканувати знову")) { viewModel.run() }
                     .buttonStyle(.plain)
                     .font(Theme.Font.body(13, .semibold)).foregroundStyle(Theme.Colors.textControl)
                     .padding(.vertical, 10).padding(.horizontal, 18)
@@ -135,8 +129,6 @@ struct SmartScanView: View {
         .nimbusCard()
     }
 
-    // MARK: Tiles from real results
-
     struct Tile: Identifiable {
         let id = UUID()
         let module: RootView.Module
@@ -150,33 +142,35 @@ struct SmartScanView: View {
         let cta: String
     }
 
+    /// Tile fields are localized here (where `loc` is available); `tileCard`
+    /// renders them verbatim. Sizes (formattedBytes) are already locale-correct.
     private var tiles: [Tile] {
         [
-            Tile(module: .cleanup, icon: "wand.and.stars", title: "Системний мотлох",
-                 desc: "Кеші, логи, тимчасові файли — безпечні до видалення",
-                 detail: "\(viewModel.cleanupItemCount) елементів", metric: viewModel.reclaimableCleanup.formattedBytes,
-                 metricColor: Theme.Colors.accentLighter, accent: Theme.Colors.accent, cta: "Переглянути"),
-            Tile(module: .lens, icon: "square.grid.2x2.fill", title: "Великі та старі файли",
-                 desc: "Мапа диску — що займає найбільше місця",
-                 detail: "мапа диску", metric: "Огляд",
-                 metricColor: Theme.Colors.textPrimary, accent: Theme.Colors.textSecondary, cta: "Відкрити Space Lens"),
-            Tile(module: .duplicates, icon: "doc.on.doc.fill", title: "Дублікати та схожі фото",
-                 desc: "Точні дублікати (BLAKE3) і візуально схожі фото",
-                 detail: "сканувати на вимогу", metric: "Сканувати",
-                 metricColor: Theme.Colors.accentLighter, accent: Theme.Colors.accent, cta: "Переглянути"),
-            Tile(module: .uninstaller, icon: "macwindow", title: "Застосунки",
-                 desc: "Видалення разом із прихованими залишками",
-                 detail: "\(viewModel.totalApps) застосунків", metric: "\(viewModel.rareApps) рідко",
+            Tile(module: .cleanup, icon: "wand.and.stars", title: loc("Системний мотлох"),
+                 desc: loc("Кеші, логи, тимчасові файли — безпечні до видалення"),
+                 detail: loc("%lld елементів", viewModel.cleanupItemCount), metric: viewModel.reclaimableCleanup.formattedBytes,
+                 metricColor: Theme.Colors.accentLighter, accent: Theme.Colors.accent, cta: loc("Переглянути")),
+            Tile(module: .lens, icon: "square.grid.2x2.fill", title: loc("Великі та старі файли"),
+                 desc: loc("Мапа диску — що займає найбільше місця"),
+                 detail: loc("мапа диску"), metric: loc("Огляд"),
+                 metricColor: Theme.Colors.textPrimary, accent: Theme.Colors.textSecondary, cta: loc("Відкрити Space Lens")),
+            Tile(module: .duplicates, icon: "doc.on.doc.fill", title: loc("Дублікати та схожі фото"),
+                 desc: loc("Точні дублікати (BLAKE3) і візуально схожі фото"),
+                 detail: loc("сканувати на вимогу"), metric: loc("Сканувати"),
+                 metricColor: Theme.Colors.accentLighter, accent: Theme.Colors.accent, cta: loc("Переглянути")),
+            Tile(module: .uninstaller, icon: "macwindow", title: loc("Застосунки"),
+                 desc: loc("Видалення разом із прихованими залишками"),
+                 detail: loc("%lld застосунків", viewModel.totalApps), metric: loc("%lld рідко", viewModel.rareApps),
                  metricColor: viewModel.rareApps > 0 ? Theme.Colors.warning : Theme.Colors.textPrimary,
-                 accent: Theme.Colors.textSecondary, cta: "Переглянути"),
-            Tile(module: .performance, icon: "bolt.fill", title: "Обслуговування",
-                 desc: "Рекомендовані задачі для плавнішої роботи",
-                 detail: "напр. переіндексація Spotlight", metric: "\(viewModel.recommendedTasks) задачі",
-                 metricColor: Theme.Colors.warning, accent: Theme.Colors.warning, cta: "Запустити"),
-            Tile(module: .health, icon: "waveform.path.ecg", title: "Стан системи",
-                 desc: "Тиск пам'яті в реальному часі",
-                 detail: "моніторинг у реальному часі", metric: viewModel.healthLabel,
-                 metricColor: Theme.Colors.pressure(viewModel.healthPressure), accent: Theme.Colors.success, cta: "Деталі"),
+                 accent: Theme.Colors.textSecondary, cta: loc("Переглянути")),
+            Tile(module: .performance, icon: "bolt.fill", title: loc("Обслуговування"),
+                 desc: loc("Рекомендовані задачі для плавнішої роботи"),
+                 detail: loc("напр. переіндексація Spotlight"), metric: loc("%lld задачі", viewModel.recommendedTasks),
+                 metricColor: Theme.Colors.warning, accent: Theme.Colors.warning, cta: loc("Запустити")),
+            Tile(module: .health, icon: "waveform.path.ecg", title: loc("Стан системи"),
+                 desc: loc("Тиск пам'яті в реальному часі"),
+                 detail: loc("моніторинг у реальному часі"), metric: loc(viewModel.healthLabel),
+                 metricColor: Theme.Colors.pressure(viewModel.healthPressure), accent: Theme.Colors.success, cta: loc("Деталі")),
         ]
     }
 }

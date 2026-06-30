@@ -7,6 +7,7 @@ import NimbusViewModels
 /// breadcrumbs, a disk gauge, and a detail side panel. Tap a folder to drill in,
 /// tap a file to act on it. Skinned to `Nimbus.dc.html`.
 struct SpaceLensView: View {
+    @Environment(Localizer.self) private var loc
     @Bindable var viewModel: SpaceLensViewModel
     @State private var drillPath: [DiskUsageNode] = []
     @State private var selected: DiskUsageNode?
@@ -33,12 +34,12 @@ struct SpaceLensView: View {
             Spacer()
             if viewModel.isScanning {
                 ProgressView().controlSize(.small)
-                Button("Скасувати") { viewModel.cancel() }
+                Button(loc("Скасувати")) { viewModel.cancel() }
             } else {
                 Button { pickFolder() } label: { Image(systemName: "folder") }
-                    .help("Вибрати теку для аналізу")
-                    .accessibilityLabel("Вибрати теку для аналізу")
-                Button("Сканувати") { drillPath = []; selected = nil; viewModel.scan() }.keyboardShortcut("r")
+                    .help(loc("Вибрати теку для аналізу"))
+                    .accessibilityLabel(loc("Вибрати теку для аналізу"))
+                Button(loc("Сканувати")) { drillPath = []; selected = nil; viewModel.scan() }.keyboardShortcut("r")
             }
             diskGauge
         }
@@ -69,7 +70,7 @@ struct SpaceLensView: View {
         let d = disk
         return HStack(spacing: 14) {
             VStack(alignment: .trailing, spacing: 1) {
-                Text("Використано").font(Theme.Font.body(11)).foregroundStyle(Theme.Colors.textTertiary)
+                Text(loc("Використано")).font(Theme.Font.body(11)).foregroundStyle(Theme.Colors.textTertiary)
                 Text("\(d.used.formattedBytes) / \(d.total.formattedBytes)").font(Theme.Font.display(14)).foregroundStyle(Theme.Colors.textPrimary)
             }
             VStack(alignment: .trailing, spacing: 4) {
@@ -81,7 +82,7 @@ struct SpaceLensView: View {
                     }
                 }
                 .frame(width: 130, height: 7)
-                Text("\((d.total - d.used).formattedBytes) вільно").font(Theme.Font.body(10.5)).foregroundStyle(Theme.Colors.textTertiary)
+                Text(loc("%@ вільно", (d.total - d.used).formattedBytes)).font(Theme.Font.body(10.5)).foregroundStyle(Theme.Colors.textTertiary)
             }
         }
     }
@@ -92,17 +93,17 @@ struct SpaceLensView: View {
     private var mainArea: some View {
         switch viewModel.phase {
         case .idle:
-            ContentUnavailableView("Скануйте, щоб побачити мапу диску", systemImage: "chart.pie",
-                description: Text("Без привілеїв — Space Lens читає вашу домівку."))
+            ContentUnavailableView(loc("Скануйте, щоб побачити мапу диску"), systemImage: "chart.pie",
+                description: Text(loc("Без привілеїв — Space Lens читає вашу домівку.")))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case let .scanning(progress):
             VStack(spacing: 8) {
                 ProgressView()
-                Text("\(progress.filesSeen) файлів · \(progress.bytesSeen.formattedBytes)").foregroundStyle(Theme.Colors.textSecondary)
+                Text(loc("%lld файлів · %@", progress.filesSeen, progress.bytesSeen.formattedBytes)).foregroundStyle(Theme.Colors.textSecondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
-            ContentUnavailableView("Сканування не вдалося", systemImage: "exclamationmark.triangle", description: Text(message))
+            ContentUnavailableView(loc("Сканування не вдалося"), systemImage: "exclamationmark.triangle", description: Text(message))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .loaded:
             HStack(spacing: 18) {
@@ -138,15 +139,15 @@ struct SpaceLensView: View {
         VStack(alignment: .leading, spacing: 14) {
             let node = selected ?? currentNode
             VStack(alignment: .leading, spacing: 8) {
-                Text((node?.isDirectory ?? true) ? "ТЕКА" : "ФАЙЛ / ГРУПА")
+                Text((node?.isDirectory ?? true) ? loc("ТЕКА") : loc("ФАЙЛ / ГРУПА"))
                     .font(Theme.Font.body(11, .semibold)).tracking(0.6).foregroundStyle(Theme.Colors.textQuaternary)
                 Text(node?.name ?? "—").font(Theme.Font.body(17, .semibold)).foregroundStyle(Theme.Colors.textPrimary)
                 Text(node?.size.formattedBytes ?? "—").font(Theme.Font.display(32)).foregroundStyle(Theme.Colors.accentLight)
                 if let node, !node.isDirectory {
                     VStack(spacing: 8) {
-                        Button("Перемістити в Кошик") { Task { await viewModel.trash(node) } }
+                        Button(loc("Перемістити в Кошик")) { Task { await viewModel.trash(node) } }
                             .buttonStyle(.plain).frame(maxWidth: .infinity).modifier(LensPrimary())
-                        Button("Показати у Finder") { reveal(node.url) }
+                        Button(loc("Показати у Finder")) { reveal(node.url) }
                             .buttonStyle(.plain).frame(maxWidth: .infinity).modifier(LensSecondary())
                     }
                     .padding(.top, 8)
@@ -156,7 +157,7 @@ struct SpaceLensView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .nimbusCard()
 
-            Text("Натисніть на блок, щоб заглибитись у теку, або оберіть файл, щоб діяти з ним. Розмір блоку = розмір на диску.")
+            Text(loc("Натисніть на блок, щоб заглибитись у теку, або оберіть файл, щоб діяти з ним. Розмір блоку = розмір на диску."))
                 .font(Theme.Font.body(12.5)).foregroundStyle(Theme.Colors.textSecondary).lineSpacing(2)
                 .padding(15)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -193,7 +194,7 @@ struct SpaceLensView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Аналізувати"
+        panel.prompt = loc("Аналізувати")
         if panel.runModal() == .OK, let url = panel.url {
             viewModel.setRoot(url)
             drillPath = []
@@ -213,6 +214,7 @@ struct SpaceLensView: View {
 }
 
 private struct TreemapTileView: View {
+    @Environment(Localizer.self) private var loc
     let node: DiskUsageNode
     let selected: Bool
     var body: some View {
@@ -229,7 +231,7 @@ private struct TreemapTileView: View {
                 .strokeBorder(selected ? .white.opacity(0.85) : Theme.Colors.window.opacity(0.6), lineWidth: selected ? 1.5 : 1)
         )
         .clipped()
-        .help("\(node.name) — \(node.size.formattedBytes)")
+        .help(loc("%@ зайнято", node.size.formattedBytes))
     }
 }
 

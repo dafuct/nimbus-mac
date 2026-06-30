@@ -5,6 +5,7 @@ import NimbusViewModels
 /// Uninstaller — installed apps on the left, the selected app's full removal set
 /// (bundle + `~/Library` leftovers) on the right. Skinned to `Nimbus.dc.html`.
 struct UninstallerView: View {
+    @Environment(Localizer.self) private var loc
     @Bindable var viewModel: UninstallerViewModel
 
     var body: some View {
@@ -43,7 +44,7 @@ struct UninstallerView: View {
     private var searchField: some View {
         HStack(spacing: 9) {
             Image(systemName: "magnifyingglass").font(.system(size: 13)).foregroundStyle(Theme.Colors.textTertiary)
-            TextField("Пошук застосунків", text: $viewModel.query)
+            TextField(loc("Пошук застосунків"), text: $viewModel.query)
                 .textFieldStyle(.plain).font(Theme.Font.body(13)).foregroundStyle(Theme.Colors.textPrimary)
         }
         .padding(.vertical, 9).padding(.horizontal, 12)
@@ -53,9 +54,9 @@ struct UninstallerView: View {
 
     private var filterButtons: some View {
         HStack(spacing: 6) {
-            filterChip("Усі \(viewModel.total)", .all)
-            filterChip("Рідко вживані \(viewModel.rareCount)", .rare)
-            filterChip("За розміром", .large)
+            filterChip(loc("Усі %lld", viewModel.total), .all)
+            filterChip(loc("Рідко вживані %lld", viewModel.rareCount), .rare)
+            filterChip(loc("За розміром"), .large)
             Spacer()
         }
     }
@@ -82,10 +83,10 @@ struct UninstallerView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         detailHeader(row)
                         if row.isRare { rareWarning }
-                        Text("ЩО БУДЕ ВИДАЛЕНО").font(Theme.Font.body(11, .semibold)).tracking(0.7)
+                        Text(loc("ЩО БУДЕ ВИДАЛЕНО")).font(Theme.Font.body(11, .semibold)).tracking(0.7)
                             .foregroundStyle(Theme.Colors.textQuaternary).padding(.top, 24).padding(.bottom, 11)
                         removalList(row)
-                        Text("Звичайне перетягування в Кошик залишає приховані файли. Nimbus прибирає їх разом із застосунком.")
+                        Text(loc("Звичайне перетягування в Кошик залишає приховані файли. Nimbus прибирає їх разом із застосунком."))
                             .font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textTertiary).padding(.top, 12)
                     }
                     .padding(EdgeInsets(top: 26, leading: 28, bottom: 20, trailing: 28))
@@ -93,7 +94,7 @@ struct UninstallerView: View {
                 detailFooter
             }
         } else {
-            ContentUnavailableView("Оберіть застосунок", systemImage: "macwindow")
+            ContentUnavailableView(loc("Оберіть застосунок"), systemImage: "macwindow")
         }
     }
 
@@ -102,7 +103,7 @@ struct UninstallerView: View {
             AppAvatar(initials: row.initials, bundleID: row.app.bundleID, size: 62, radius: 15, fontSize: 22)
             VStack(alignment: .leading, spacing: 4) {
                 Text(row.app.name).font(Theme.Font.display(23)).foregroundStyle(Theme.Colors.textPrimary)
-                Text("Останнє відкриття: \(usedText(row.lastUsed))")
+                Text(loc("Останнє відкриття: %@", usedText(row.lastUsed)))
                     .font(Theme.Font.body(12.5)).foregroundStyle(Theme.Colors.textSecondary)
             }
             Spacer()
@@ -112,7 +113,7 @@ struct UninstallerView: View {
     private var rareWarning: some View {
         HStack(spacing: 9) {
             Image(systemName: "exclamationmark.circle").foregroundStyle(Theme.Colors.warning)
-            Text("Ви давно не відкривали цей застосунок. Видалення безпечне — за потреби його можна перевстановити.")
+            Text(loc("Ви давно не відкривали цей застосунок. Видалення безпечне — за потреби його можна перевстановити."))
                 .font(Theme.Font.body(12.5)).foregroundStyle(Color(hex: 0xD8C99A))
         }
         .padding(.vertical, 11).padding(.horizontal, 14)
@@ -138,11 +139,11 @@ struct UninstallerView: View {
     private var detailFooter: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("До переміщення в Кошик").font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textTertiary)
+                Text(loc("До переміщення в Кошик")).font(Theme.Font.body(12)).foregroundStyle(Theme.Colors.textTertiary)
                 Text(viewModel.selectedTotal.formattedBytes).font(Theme.Font.display(21)).foregroundStyle(Theme.Colors.textPrimary)
             }
             Spacer()
-            Button("Видалити повністю") { Task { await viewModel.uninstall() } }
+            Button(loc("Видалити повністю")) { Task { await viewModel.uninstall() } }
                 .buttonStyle(.plain)
                 .modifier(PrimaryButton())
                 .disabled(viewModel.selection.isEmpty)
@@ -153,13 +154,13 @@ struct UninstallerView: View {
     }
 
     private func usedText(_ date: Date?) -> String {
-        guard let date else { return "невідомо" }
+        guard let date else { return loc("невідомо") }
         let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
-        if days < 1 { return "сьогодні" }
-        if days < 30 { return "\(days) дн тому" }
+        if days < 1 { return loc("сьогодні") }
+        if days < 30 { return loc("%lld дн тому", days) }
         let months = days / 30
-        if months < 12 { return "\(months) міс тому" }
-        return "\(months / 12) р тому"
+        if months < 12 { return loc("%lld міс тому", months) }
+        return loc("%lld р тому", months / 12)
     }
 }
 
@@ -187,6 +188,7 @@ private struct AppAvatar: View {
 }
 
 private struct AppRowView: View {
+    @Environment(Localizer.self) private var loc
     let row: UninstallerViewModel.Row
     let selected: Bool
     let onTap: () -> Void
@@ -198,7 +200,7 @@ private struct AppRowView: View {
                     HStack(spacing: 7) {
                         Text(row.app.name).font(Theme.Font.body(13.5, .semibold)).foregroundStyle(Theme.Colors.textPrimary).lineLimit(1)
                         if row.isRare {
-                            Text("рідко").font(Theme.Font.body(9, .semibold)).foregroundStyle(Theme.Colors.warning)
+                            Text(loc("рідко")).font(Theme.Font.body(9, .semibold)).foregroundStyle(Theme.Colors.warning)
                                 .padding(.vertical, 1.5).padding(.horizontal, 6)
                                 .background(Theme.Colors.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 5))
                         }
@@ -219,6 +221,7 @@ private struct AppRowView: View {
 }
 
 private struct LeftoverRowView: View {
+    @Environment(Localizer.self) private var loc
     let leftover: Leftover
     let selected: Bool
     let onToggle: () -> Void
@@ -228,7 +231,7 @@ private struct LeftoverRowView: View {
                 Image(systemName: selected ? "checkmark.square.fill" : "square")
                     .foregroundStyle(selected ? Theme.Colors.accent : Theme.Colors.textTertiary)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(leftover.kind.rawValue).font(Theme.Font.body(13, .medium)).foregroundStyle(Theme.Colors.textBright)
+                    Text(loc.leftoverKind(leftover.kind)).font(Theme.Font.body(13, .medium)).foregroundStyle(Theme.Colors.textBright)
                     Text(leftover.url.path).font(Theme.Font.mono(11)).foregroundStyle(Theme.Colors.textTertiary)
                         .lineLimit(1).truncationMode(.middle)
                 }

@@ -12,6 +12,7 @@ final class AppEnvironment {
     var exclusionList: ExclusionList
     let installedApps: Set<String>
     let osVersion: OSVersion
+    @ObservationIgnored let localizer = Localizer()
 
     @ObservationIgnored let contentHasher: ContentHashing = RustContentHasher()
     @ObservationIgnored let perceptualHasher: PerceptualHashing = RustPerceptualHasher()
