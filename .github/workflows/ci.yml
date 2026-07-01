@@ -55,6 +55,15 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-app-${{ hashFiles('rust/**/Cargo.lock', 'rust/**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Add x86_64 Rust target

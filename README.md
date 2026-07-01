@@ -1,5 +1,10 @@
 # Nimbus
 
+[![CI](https://github.com/dafuct/nimbus-mac/actions/workflows/ci.yml/badge.svg)](https://github.com/dafuct/nimbus-mac/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey)
+![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange)
+
 A native macOS maintenance & cleanup utility (CleanMyMac-class) for macOS 14+ on
 Apple Silicon and Intel. **Swift + SwiftUI is the core**; **Rust is a narrow
 accelerator** used only for genuinely CPU-bound work (parallel content hashing for
@@ -15,22 +20,28 @@ duplicates, perceptual hashing for similar photos) over a UniFFI bridge.
 |---|---|---|
 | Rust core (`nimbus_core`): dup hashing, perceptual hashing, BK-tree clustering | ✅ complete | `cargo test` — 10/10 |
 | FFI boundary (UniFFI) + generated Swift bindings | ✅ complete | dylib built, bindings generated end-to-end |
-| NimbusKit domain layer (scanning, treemap, selection, 6 modules, safety engine) | ✅ complete | `swift test` — 30/30 |
-| View models (MVVM, headless-testable) | ✅ complete | `swift test` — 2/2 |
+| NimbusKit domain layer (scanning, treemap, selection, 6 modules, safety engine) | ✅ complete | `swift test` — green |
+| View models (MVVM, headless-testable) | ✅ complete | `swift test` — green |
 | SwiftUI app + privileged helper + entitlements | ✅ complete | **builds via XcodeGen + xcodebuild (BUILD SUCCEEDED)** |
 | Visual fidelity to `Nimbus.dc.html` | ✅ applied (core screens) | dark theme, purple accent, sidebar, Smart Scan, Health |
 
-Total automated tests green: **42** (10 Rust + 32 Swift). The full app (SwiftUI +
-Rust bridge + helper) compiles and links into a signed `Nimbus.app`.
+Total automated tests green: **50** (10 Rust + 40 Swift), all run in CI on every
+push and pull request. The full app (SwiftUI + Rust bridge + helper) compiles and
+links into a signed `Nimbus.app`.
 
 ## Build & run the app
 
 ```bash
+git clone https://github.com/dafuct/nimbus-mac.git && cd nimbus-mac
 brew install xcodegen        # one-time
 xcodegen generate            # writes Nimbus.xcodeproj from project.yml
 xcodebuild -project Nimbus.xcodeproj -scheme Nimbus -configuration Debug build
 # or: open Nimbus.xcodeproj   and ⌘R in Xcode
 ```
+
+To package a distributable disk image (universal, ad-hoc signed) run
+`scripts/package-dmg.sh`; for a Developer-ID + notarized build run
+`scripts/notarize.sh` afterward.
 
 The Xcode build runs `scripts/build-rust.sh` (universal `libnimbus_core.a` +
 regenerated UniFFI bindings) as a pre-build phase, links it, and embeds the
@@ -81,15 +92,18 @@ cd rust && cargo test
 
 The SwiftUI app + helper are assembled in an Xcode project that links
 `rust/target/universal/libnimbus_core.a` and the `nimbus_coreFFI` module map. See
-[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) for the Xcode wiring, entitlements,
-helper lifecycle, hardened runtime, and notarization.
+`docs/DISTRIBUTION.md` (kept local) for the Xcode wiring, entitlements, helper
+lifecycle, hardened runtime, and notarization.
 
 ## Docs
 
-- [Architecture](docs/ARCHITECTURE.md) — layers, DRY scanning core, concurrency.
-- [FFI boundary](docs/FFI.md) — the Rust API surface, generated Swift, end-to-end duplicate flow.
-- [Safety model](docs/SAFETY.md) — rules engine, dispositions, example catalog, Trash-by-default.
-- [Distribution](docs/DISTRIBUTION.md) — Xcode integration, entitlements, helper, sandbox trade-off, notarization.
+Extended design docs live under `docs/` locally but are intentionally **not
+tracked** in git (see `.gitignore`). They cover:
+
+- **Architecture** — layers, DRY scanning core, concurrency.
+- **FFI boundary** — the Rust API surface, generated Swift, end-to-end duplicate flow.
+- **Safety model** — rules engine, dispositions, example catalog, Trash-by-default.
+- **Distribution** — Xcode integration, entitlements, helper, sandbox trade-off, notarization.
 
 ## Note on the design
 
@@ -99,3 +113,17 @@ interactive `/design-login`), so the SwiftUI views use a neutral **default skin*
 centralized in `App/Nimbus/Support/DesignTokens.swift`. Provide `Nimbus.dc.html`
 (or seed it via Claude Design's "Send to Claude Code Web") to re-skin precisely —
 only `Theme` and the view bodies change; the entire architecture stays put.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main`
+and on every pull request (`macos-15` runner):
+
+- **`cargo test`** — the pure Rust algorithms (dup grouping, perceptual hashing, BK-tree).
+- **`cargo build --release --features ffi`** — the UniFFI surface compiles.
+- **`swift test`** — the NimbusKit domain layer + view models (headless, Rust-free).
+- **`xcodegen generate` + `xcodebuild`** — the full SwiftUI app links (Debug, code signing off).
+
+## License
+
+Released under the [MIT License](LICENSE) © 2026 Dmytro Makarenko.
