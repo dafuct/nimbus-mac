@@ -115,7 +115,17 @@ struct SpaceLensView: View {
 
     private var treemap: some View {
         GeometryReader { geo in
-            let children = currentNode?.children ?? []
+            // Fold the long tail of tiny folders into one "Other" tile so they stop
+            // piling up as overlapping sub-pixel chips. The floor is in *board* pixels,
+            // so the size cutoff adapts to the current window/board size.
+            let children = DiskUsageNode.collapsingTail(
+                currentNode?.children ?? [],
+                boardArea: Double(geo.size.width * geo.size.height),
+                minTileArea: 2500,
+                maxTiles: 18,
+                otherURL: Self.otherTileURL(under: currentNode),
+                otherName: loc("Інше")
+            )
             let tiles = TreemapLayout.squarify(
                 children.map { (id: $0.id, weight: Double(max($0.size, 1))) },
                 in: CGRect(origin: .zero, size: geo.size)
@@ -175,6 +185,16 @@ struct SpaceLensView: View {
         return nil
     }
     private var currentNode: DiskUsageNode? { drillPath.last ?? rootNode }
+
+    /// Stable, unique URL for the synthetic "Other" tile. Real scanned URLs never
+    /// carry this marker, and nesting stays unique because a parent that already
+    /// carries it grows by one segment each level — so drill-path ids never clash.
+    private static func otherTileURL(under node: DiskUsageNode?) -> URL {
+        let fallback = URL(fileURLWithPath: NSHomeDirectory())
+        let base = (node?.url ?? fallback).absoluteString
+        let marked = base.contains("#nimbus-other") ? base + ".x" : base + "#nimbus-other"
+        return URL(string: marked) ?? fallback
+    }
 
     private func tap(_ node: DiskUsageNode) {
         if node.isDirectory && !node.children.isEmpty {

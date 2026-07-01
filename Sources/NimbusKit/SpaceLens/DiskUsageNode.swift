@@ -21,6 +21,52 @@ public struct DiskUsageNode: Identifiable, Sendable, Hashable {
     public var isLeaf: Bool { children.isEmpty }
 }
 
+public extension DiskUsageNode {
+    /// Collapse children too small to render as legible tiles into one synthetic
+    /// "Other" directory, so a treemap shows a clean board instead of a pile of
+    /// sub-pixel tiles stacked in a corner. `children` must be sorted by `size`
+    /// descending (the tree builder guarantees this).
+    ///
+    /// The synthetic node keeps the tail as its own children, so tapping it drills
+    /// in and re-renders them at full size — nothing becomes unreachable. Always
+    /// keeps at least the largest child, so drilling into "Other" strictly shrinks
+    /// the set and can never loop, even when every child is tiny. Returns `children`
+    /// unchanged when collapsing fewer than two tiles wouldn't help.
+    static func collapsingTail(
+        _ children: [DiskUsageNode],
+        boardArea: Double,
+        minTileArea: Double,
+        maxTiles: Int,
+        otherURL: URL,
+        otherName: String
+    ) -> [DiskUsageNode] {
+        guard boardArea > 0, minTileArea > 0, maxTiles > 0, children.count > 1 else { return children }
+        let total = children.reduce(0.0) { $0 + Double(max($1.size, 1)) }
+        guard total > 0 else { return children }
+
+        // Two independent limits, whichever bites first:
+        //  • area floor — drop tiles too small to render as a legible block, and
+        //  • a hard tile-count cap — so a wide, flat size distribution can't fan out
+        //    into dozens of thin slivers even when each clears the area floor.
+        // The cap reserves one slot for the "Other" tile.
+        let areaCut = children.firstIndex {
+            Double(max($0.size, 1)) / total * boardArea < minTileArea
+        } ?? children.count
+        let cut = Swift.max(1, Swift.min(areaCut, maxTiles - 1))
+        let tail = children[cut...]
+        guard tail.count > 1 else { return children }
+
+        let other = DiskUsageNode(
+            url: otherURL,
+            name: otherName,
+            isDirectory: true,
+            size: tail.reduce(Int64(0)) { $0 + $1.size },
+            children: Array(tail)
+        )
+        return Array(children[..<cut]) + [other]
+    }
+}
+
 /// Folds the flat `FileEntry` stream (the single traversal) into an aggregated
 /// tree. Keeping this separate from the walk means Space Lens reuses the exact
 /// traversal every other module uses — no second directory walk just to size things.

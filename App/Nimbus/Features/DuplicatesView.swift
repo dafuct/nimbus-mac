@@ -120,14 +120,33 @@ struct DuplicatesView: View {
             if viewModel.groups.isEmpty {
                 ContentUnavailableView(loc("Дублікатів не знайдено"), systemImage: "checkmark.seal")
             } else {
-                List {
-                    ForEach(viewModel.groups) { group in
-                        Section { fileRows(group) } header: { fileHeader(group) }
+                // Lazy layout: `List` builds an identity node for *every* row up front
+                // (OutlineListCoordinator.diffRows), which overflowed AttributeGraph on
+                // large scans and aborted. LazyVStack only realizes on-screen rows. The
+                // render cap is belt-and-suspenders; selection/removal still run over the
+                // full `viewModel.groups`, so auto-select keeps working for hidden groups.
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 6) {
+                        ForEach(viewModel.groups.prefix(maxVisibleGroups)) { group in
+                            Section { fileRows(group) } header: { fileHeader(group) }
+                        }
+                        if viewModel.groups.count > maxVisibleGroups { truncationNote }
                     }
+                    .padding(EdgeInsets(top: 12, leading: 28, bottom: 18, trailing: 28))
                 }
-                .scrollContentBackground(.hidden)
             }
         }
+    }
+
+    /// Hard ceiling on rows fed to the view tree, regardless of scan size.
+    private let maxVisibleGroups = 500
+
+    private var truncationNote: some View {
+        Text(loc("Показано %lld з %lld груп — звузьте область сканування, щоб побачити решту",
+                 maxVisibleGroups, viewModel.groups.count))
+            .font(Theme.Font.body(11.5))
+            .foregroundStyle(Theme.Colors.textTertiary)
+            .padding(.top, 10)
     }
 
     private var filesProgress: Int {
@@ -142,6 +161,8 @@ struct DuplicatesView: View {
             Text(loc("Звільнити %@", group.reclaimableBytes.formattedBytes)).foregroundStyle(Theme.Colors.accentLight)
         }
         .font(Theme.Font.body(11.5))
+        .foregroundStyle(Theme.Colors.textSecondary)
+        .padding(.top, 12).padding(.bottom, 2)
     }
 
     private func fileRows(_ group: NimbusKit.DuplicateGroup) -> some View {
@@ -149,6 +170,7 @@ struct DuplicatesView: View {
             DuplicateFileRow(file: file,
                              isSelected: viewModel.selection.isSelected(file.id),
                              onToggle: { viewModel.toggle(file) })
+                .padding(.vertical, 2)
         }
     }
 

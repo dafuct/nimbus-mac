@@ -48,4 +48,59 @@ final class TreemapLayoutTests: XCTestCase {
             XCTAssertGreaterThan(tile.rect.height, 0)
         }
     }
+
+    // MARK: - collapsingTail
+
+    private func node(_ name: String, _ size: Int64, dir: Bool = true) -> DiskUsageNode {
+        DiskUsageNode(url: URL(fileURLWithPath: "/x/\(name)"), name: name,
+                      isDirectory: dir, size: size, children: [])
+    }
+    private let otherURL = URL(string: "file:///x#nimbus-other")!
+
+    func test_collapsingTail_foldsSmallChildrenIntoOther() {
+        let kids = [node("big", 1_000_000), node("a", 50), node("b", 40), node("c", 30)]
+        let out = DiskUsageNode.collapsingTail(kids, boardArea: 1000, minTileArea: 100,
+                                               maxTiles: 100, otherURL: otherURL, otherName: "Other")
+        XCTAssertEqual(out.map(\.name), ["big", "Other"])
+        let other = out.last!
+        XCTAssertEqual(other.size, 120)                 // 50 + 40 + 30
+        XCTAssertEqual(other.children.count, 3)         // tail kept reachable for drill-in
+        XCTAssertTrue(other.isDirectory)
+    }
+
+    func test_collapsingTail_keepsAllWhenEveryTileIsLargeEnough() {
+        let kids = [node("a", 300), node("b", 300), node("c", 300)]
+        let out = DiskUsageNode.collapsingTail(kids, boardArea: 900, minTileArea: 100,
+                                               maxTiles: 100, otherURL: otherURL, otherName: "Other")
+        XCTAssertEqual(out.map(\.name), ["a", "b", "c"])  // no synthetic tile added
+    }
+
+    func test_collapsingTail_alwaysKeepsLargest_soDrillCannotLoop() {
+        // Every child is below the floor → keep the biggest, fold the rest, so the
+        // set shrinks on drill-in instead of re-wrapping the whole thing forever.
+        let kids = (0..<10).map { node("n\($0)", 10) }
+        let out = DiskUsageNode.collapsingTail(kids, boardArea: 100, minTileArea: 1000,
+                                               maxTiles: 100, otherURL: otherURL, otherName: "Other")
+        XCTAssertEqual(out.count, 2)
+        XCTAssertEqual(out.last!.children.count, 9)
+    }
+
+    func test_collapsingTail_singleTailItemIsNotWrapped() {
+        let kids = [node("big", 1000), node("solo", 1)]
+        let out = DiskUsageNode.collapsingTail(kids, boardArea: 1000, minTileArea: 100,
+                                               maxTiles: 100, otherURL: otherURL, otherName: "Other")
+        XCTAssertEqual(out.map(\.name), ["big", "solo"])  // wrapping one item helps nothing
+    }
+
+    func test_collapsingTail_capsTileCount_evenWhenAllClearTheAreaFloor() {
+        // 40 equally-large tiles all clear the area floor, but the count cap must
+        // still fold everything past the cap into one "Other" so the board can't
+        // fan out into dozens of thin slivers.
+        let kids = (0..<40).map { node("n\($0)", 1_000_000) }
+        let out = DiskUsageNode.collapsingTail(kids, boardArea: 1_000_000, minTileArea: 1,
+                                               maxTiles: 18, otherURL: otherURL, otherName: "Other")
+        XCTAssertEqual(out.count, 18)                      // 17 real + 1 "Other"
+        XCTAssertEqual(out.last!.name, "Other")
+        XCTAssertEqual(out.last!.children.count, 40 - 17)  // remainder folded in
+    }
 }
