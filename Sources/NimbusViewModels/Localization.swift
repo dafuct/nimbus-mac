@@ -63,7 +63,7 @@ public final class Localizer {
             .appBundle: "Застосунок", .caches: "Кеші", .preferences: "Налаштування",
             .appSupport: "Application Support", .containers: "Контейнери",
             .savedState: "Збережений стан", .launchAgents: "Агенти запуску",
-            .logs: "Логи", .other: "Інше",
+            .logs: "Логи", .temp: "Тимчасові файли", .other: "Інше",
         ]
         return resolve(map[k] ?? k.rawValue)
     }
@@ -187,6 +187,24 @@ public final class Localizer {
         "Ви давно не відкривали цей застосунок. Видалення безпечне — за потреби його можна перевстановити.":
             "You haven't opened this app in a while. Removal is safe — you can reinstall it later.",
         "ЩО БУДЕ ВИДАЛЕНО": "WHAT WILL BE REMOVED",
+        "Тимчасові файли": "Temporary files",
+        // Leftover-kind labels (values of the leftoverKind map).
+        "Застосунок": "Application",
+        "Кеші": "Caches",
+        "Контейнери": "Containers",
+        "Збережений стан": "Saved state",
+        "Агенти запуску": "Launch agents",
+        "Логи": "Logs",
+        "Інше": "Other",
+        // Cleanup-category labels (values of the category map).
+        "Кеші застосунків": "App caches",
+        "Системні логи": "System logs",
+        "Невикористовувані мови": "Unused languages",
+        "Поштові вкладення": "Mail attachments",
+        "Xcode-сміття": "Xcode junk",
+        "Кошик": "Trash",
+        "Дані браузера": "Browser data",
+        "Залишки застосунків": "App leftovers",
         "Звичайне перетягування в Кошик залишає приховані файли. Nimbus прибирає їх разом із застосунком.":
             "Dragging to Trash leaves hidden files behind. Nimbus removes them with the app.",
         "Видалити повністю": "Remove completely",

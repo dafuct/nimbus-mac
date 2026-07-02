@@ -7,7 +7,7 @@ public struct Leftover: Selectable, Hashable {
     public let kind: Kind
     public var removalBytes: Int64 { bytes }
 
-    public enum Kind: String, Sendable {
+    public enum Kind: String, Sendable, CaseIterable {
         case appBundle = "Application"
         case caches = "Caches"
         case preferences = "Preferences"
@@ -16,19 +16,48 @@ public struct Leftover: Selectable, Hashable {
         case savedState = "Saved State"
         case launchAgents = "Launch Agents"
         case logs = "Logs"
+        case temp = "Temporary Files"
         case other = "Other"
     }
 }
 
-/// Resolves the on-disk footprint an app leaves across `~/Library` from its
-/// bundle id and name. The candidate locations are the well-known ones every
-/// macOS app uses; we check existence and size each via the shared scanner — no
-/// bespoke directory walk here.
+/// Resolves the on-disk footprint an app leaves across `~/Library` and the
+/// per-user `/var/folders` cache/temp dirs from its bundle id and name. The
+/// candidate locations are the well-known ones every macOS app uses; we check
+/// existence and size each via the shared scanner — no bespoke directory walk
+/// here.
 public struct LeftoverResolver: Sendable {
-    public init() {}
+    private let library: URL
+    private let darwinCacheDir: URL?
+    private let darwinTempDir: URL?
+
+    public init() {
+        self.init(
+            library: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library"),
+            darwinCacheDir: Self.darwinUserDir(_CS_DARWIN_USER_CACHE_DIR),
+            darwinTempDir: Self.darwinUserDir(_CS_DARWIN_USER_TEMP_DIR)
+        )
+    }
+
+    /// Injectable roots for tests.
+    init(library: URL, darwinCacheDir: URL?, darwinTempDir: URL?) {
+        self.library = library
+        self.darwinCacheDir = darwinCacheDir
+        self.darwinTempDir = darwinTempDir
+    }
+
+    /// Per-user dir under `/var/folders` (`getconf DARWIN_USER_CACHE_DIR` / `…_TEMP_DIR`).
+    /// Sandbox-free apps drop `<bundle id>` folders there that a `~/Library`-only
+    /// sweep misses.
+    static func darwinUserDir(_ name: Int32) -> URL? {
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        let length = confstr(name, &buffer, buffer.count)
+        guard length > 0, length <= buffer.count else { return nil }
+        return URL(fileURLWithPath: String(cString: buffer), isDirectory: true)
+    }
 
     public func resolve(for app: InstalledApp) async -> [Leftover] {
-        let lib = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library")
+        let lib = library
         let id = app.bundleID
         let name = app.name
 
@@ -49,12 +78,15 @@ public struct LeftoverResolver: Sendable {
         ]
         candidates.append(("LaunchAgents/\(id).plist", .launchAgents))
 
+        var probes: [(URL, Leftover.Kind)] = candidates.map { (lib.appendingPathComponent($0.0), $0.1) }
+        if let dir = darwinCacheDir { probes.append((dir.appendingPathComponent(id), .caches)) }
+        if let dir = darwinTempDir { probes.append((dir.appendingPathComponent(id), .temp)) }
+
         var leftovers: [Leftover] = []
         // The app bundle itself.
         leftovers.append(Leftover(url: app.url, bytes: await sizeOf(app.url), kind: .appBundle))
 
-        for (relative, kind) in candidates {
-            let url = lib.appendingPathComponent(relative)
+        for (url, kind) in probes {
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let size = await sizeOf(url)
             leftovers.append(Leftover(url: url, bytes: size, kind: kind))
