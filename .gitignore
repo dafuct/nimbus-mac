@@ -24,4 +24,5 @@ docs/
 .verity/
 VERITY.md
 .codacy/
-.claude/settings.local.json
+.claude/
+CLAUDE.md
