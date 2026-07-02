@@ -26,3 +26,7 @@ VERITY.md
 .codacy/
 .claude/
 CLAUDE.md
+
+# LLM Wiki (local-only knowledge base, same policy as docs/)
+wiki/
+raw/
