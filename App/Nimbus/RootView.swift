@@ -1,4 +1,5 @@
 import SwiftUI
+import NimbusKit
 import NimbusViewModels
 
 /// Top-level shell, skinned to `Nimbus.dc.html`: a custom dark sidebar (logo,
@@ -81,9 +82,9 @@ struct RootView: View {
 
             sectionHeader(loc("Очищення"))
             VStack(spacing: 2) {
-                navRow(.cleanup, badge: loc("12.4 ГБ"))
+                navRow(.cleanup, badge: sizeBadge(env.cleanup.foundBytes))
                 navRow(.lens)
-                navRow(.duplicates, badge: loc("8.7 ГБ"))
+                navRow(.duplicates, badge: sizeBadge(env.duplicates.foundReclaimableBytes))
                 navRow(.uninstaller)
                 navRow(.performance)
             }
@@ -127,6 +128,14 @@ struct RootView: View {
             .tracking(0.8)
             .foregroundStyle(Theme.Colors.textQuaternary)
             .padding(.horizontal, 22).padding(.top, 18).padding(.bottom, 7)
+    }
+
+    /// Sidebar size chip: the real reclaimable total from the last scan, or `nil`
+    /// (no chip) until a scan has found something — never a stale placeholder.
+    /// Reading the view models' observable state here makes the chip refresh on
+    /// scan and after a cleanup re-scans.
+    private func sizeBadge(_ bytes: Int64) -> String? {
+        bytes > 0 ? bytes.formattedBytes : nil
     }
 
     private func navRow(_ module: Module, badge: String? = nil) -> some View {

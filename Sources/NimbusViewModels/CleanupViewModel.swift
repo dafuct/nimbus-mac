@@ -38,6 +38,12 @@ public final class CleanupViewModel {
         selection.reclaimableBytes(over: allItems)
     }
 
+    /// Total reclaimable bytes found by the last scan (0 until a scan loads and
+    /// again after everything is removed). Drives the sidebar size badge.
+    public var foundBytes: Int64 {
+        allItems.reduce(0) { $0 + $1.bytes }
+    }
+
     public func scan() {
         cancel()
         phase = .scanning(.zero)

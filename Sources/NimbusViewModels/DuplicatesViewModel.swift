@@ -70,6 +70,14 @@ public final class DuplicatesViewModel {
         selection.reclaimableBytes(over: groups.flatMap(\.files))
     }
 
+    /// Total reclaimable bytes across all found duplicate + photo groups (keeping
+    /// one copy each). 0 until a scan loads; drops after removal re-scans. Drives
+    /// the sidebar size badge.
+    public var foundReclaimableBytes: Int64 {
+        groups.reduce(0) { $0 + $1.reclaimableBytes }
+            + photoGroups.reduce(0) { $0 + $1.reclaimableBytes }
+    }
+
     public func scan() {
         cancel()
         scanTask = Task { [weak self] in await self?.performScan() }
