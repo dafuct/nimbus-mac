@@ -20,9 +20,7 @@ docs/
 # scripts/gen-bindings.sh; uncomment to treat as build artifacts:
 # Sources/NimbusFFI/generated/
 
-# Verity & Codacy — local-only tooling state, not shared in the repo
-.verity/
-VERITY.md
+# Codacy & Claude — local-only tooling state, not shared in the repo
 .codacy/
 .claude/
 CLAUDE.md
